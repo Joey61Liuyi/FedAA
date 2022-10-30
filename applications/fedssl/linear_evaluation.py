@@ -13,22 +13,44 @@ from model import get_encoder_network
 def inference(loader, model, device):
     feature_vector = []
     labels_vector = []
-    model.eval()
-    for step, (x, y) in enumerate(loader):
-        x = x.to(device)
 
-        # get encoding
-        with torch.no_grad():
-            h = model(x)
+    if isinstance(model, list):
+        models = model
+        for resnet in models:
+            resnet.eval()
 
-        h = h.squeeze()
-        h = h.detach()
+        for step, (x, y) in enumerate(loader):
+            x = x.cuda()
+            feature_list = []
+            for resnet in models:
+                with torch.no_grad():
+                    h = resnet(x)
+                    h = h.squeeze()
+                    h = h.detach()
+                feature_list.append(h)
+            h = sum(feature_list)/len(feature_list)
+            feature_vector.extend(h.cpu().detach().numpy())
+            labels_vector.extend(y.numpy())
+            if step % 5 == 0:
+                print(f"Step [{step}/{len(loader)}]\t Computing features...")
 
-        feature_vector.extend(h.cpu().detach().numpy())
-        labels_vector.extend(y.numpy())
+    else:
+        model.eval()
+        for step, (x, y) in enumerate(loader):
+            x = x.to(device)
 
-        if step % 5 == 0:
-            print(f"Step [{step}/{len(loader)}]\t Computing features...")
+            # get encoding
+            with torch.no_grad():
+                h = model(x)
+
+            h = h.squeeze()
+            h = h.detach()
+
+            feature_vector.extend(h.cpu().detach().numpy())
+            labels_vector.extend(y.numpy())
+
+            if step % 5 == 0:
+                print(f"Step [{step}/{len(loader)}]\t Computing features...")
 
     feature_vector = np.array(feature_vector)
     labels_vector = np.array(labels_vector)
@@ -83,14 +105,15 @@ def test_result(test_loader, logreg, device, model_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="cifar10", type=str)
-    parser.add_argument("--model_path", required=True, type=str, help="Path to pre-trained model (e.g. model-10.pt)")
-    parser.add_argument('--model', default='simsiam', type=str, help='name of the network')
+    parser.add_argument("--model_path", default='./saved_models/byol_local_epoch_wise_/byol_local_epoch_wise__global_model_r_99_f0000000.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
+    parser.add_argument('--model', default='simclr', type=str, help='name of the network')
     parser.add_argument("--image_size", default=32, type=int, help="Image size")
     parser.add_argument("--learning_rate", default=3e-3, type=float, help="Initial learning rate.")
     parser.add_argument("--batch_size", default=512, type=int, help="Batch size for training.")
     parser.add_argument("--num_epochs", default=200, type=int, help="Number of epochs to train for.")
     parser.add_argument("--encoder_network", default="resnet18", type=str, help="Encoder network architecture.")
     parser.add_argument("--num_workers", default=8, type=int, help="Number of data workers (caution with nodes!)")
+    parser.add_argument("--personalized", default=True, type=bool, help="Number of data workers (caution with nodes!)")
     parser.add_argument("--fc", default="identity", help="options: identity, remove")
     args = parser.parse_args()
     print(args)
@@ -100,15 +123,36 @@ if __name__ == "__main__":
     # get data loaders
     train_loader, test_loader = get_data_loaders(args.dataset, args.image_size, args.batch_size, args.num_workers)
 
-    # get model
-    resnet = get_encoder_network(args.model, args.encoder_network)
-    resnet.load_state_dict(torch.load(args.model_path, map_location=device))
-    resnet = resnet.to(device)
-    num_features = list(resnet.children())[-1].in_features
-    if args.fc == "remove":
-        resnet = nn.Sequential(*list(resnet.children())[:-1])  # throw away fc layer
+
+    #
+    #
+    model_name = ['f0000000.pth','f0000001.pth', 'f0000002.pth', 'f0000003.pth', 'f0000004.pth']
+    models = []
+    if args.personalized:
+        name_list = args.model_path.split('_')
+        for name in model_name:
+            name_list.pop()
+            name_list.append(name)
+            model = '_'.join(name_list)
+            resnet = get_encoder_network(args.model, args.encoder_network)
+            resnet.load_state_dict(torch.load(model, map_location = device))
+            num_features = list(resnet.children())[-1].in_features
+            if args.fc == "remove":
+                resnet = nn.Sequential(*list(resnet.children())[:-1])  # throw away fc layer
+            else:
+                resnet.fc = nn.Identity()
+            resnet = resnet.to(device)
+            models.append(resnet)
+        resnet = models
     else:
-        resnet.fc = nn.Identity()
+        resnet = get_encoder_network(args.model, args.encoder_network)
+        resnet.load_state_dict(torch.load(args.model_path, map_location=device))
+        resnet = resnet.to(device)
+        num_features = list(resnet.children())[-1].in_features
+        if args.fc == "remove":
+            resnet = nn.Sequential(*list(resnet.children())[:-1])  # throw away fc layer
+        else:
+            resnet.fc = nn.Identity()
 
     n_classes = 10
     if args.dataset == CIFAR100:

@@ -32,7 +32,13 @@ def get_encoder(arch=RESNET18):
     return models.__dict__[arch]
 
 
-def get_model(model, encoder_network, predictor_network=TwoLayer):
+def get_model(model, encoder_network, predictor_network=TwoLayer, fed_para=False):
+
+    if fed_para:
+        from easyfl.models.fed_para import ResNet18
+    else:
+        from easyfl.models.resnet import ResNet18, ResNet50
+
     mlp = False
     T = 0.07
     stop_gradient = True
@@ -84,7 +90,7 @@ def get_model(model, encoder_network, predictor_network=TwoLayer):
         raise NotImplementedError
 
 
-def get_encoder_network(model, encoder_network, num_classes=10, projection_size=2048, projection_hidden_size=4096):
+def get_encoder_network(model, encoder_network, num_classes=10, projection_size=256, projection_hidden_size=256):
     if model in [MoCo, MoCoV2]:
         num_classes = 128
 
@@ -228,8 +234,8 @@ class BYOLModel(BaseModel):
             self,
             net=ResNet18(),
             image_size=32,
-            projection_size=2048,
-            projection_hidden_size=4096,
+            projection_size=256,
+            projection_hidden_size=256,
             moving_average_decay=0.99,
             stop_gradient=True,
             has_predictor=True,
@@ -297,7 +303,7 @@ class BYOLModel(BaseModel):
         loss_two = byol_loss_fn(online_pred_two, target_proj_one)
         loss = loss_one + loss_two
 
-        return loss.mean()
+        return online_pred_one, online_pred_two, loss.mean()
 
 
 class EMA:
@@ -473,7 +479,7 @@ class MoCoModel(BaseModel):
 
 
 class SimCLRModel(BaseModel):
-    def __init__(self, net=ResNet18(), image_size=32, projection_size=2048, projection_hidden_size=4096):
+    def __init__(self, net=ResNet18(), image_size=32, projection_size=256, projection_hidden_size=256):
         super().__init__()
 
         self.online_encoder = net

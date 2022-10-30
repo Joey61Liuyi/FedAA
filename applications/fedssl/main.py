@@ -15,9 +15,8 @@ def run():
     dataset = 'cifar10'
     fed_ema = False
     personalized = True  # whether you use individual model without aggregation
-    batch_wise = False  # whether to use batch_wise training paradim
     semantic_align = False
-    fed_para = False
+    fed_para = True
     semantic_method = 'QR'
     aggregation_method = 'semantic'
 
@@ -27,7 +26,6 @@ def run():
         model = 'byol'
         update_encoder = 'dynamic_ema_online'
         update_predictor = 'dynamic_dapu'
-        batch_wise = True
         semantic_align = False
     else:
         model = 'byol'
@@ -40,21 +38,16 @@ def run():
         else:
             name1 = '_weights_agg_'
 
-        if batch_wise:
-            name2 = 'batch_wise_'
-        else:
-            name2 = 'epoch_wise_'
-
         if semantic_align:
             name3 = semantic_method + '_' + aggregation_method
         else:
             name3 = ''
         if fed_para:
             name3 = 'fed_para'
-        name = name0+name1+name2+name3
+        name = name0+name1+name3
 
     task_id = name
-    wandb.init(project='EasyFL_{}'.format(dataset), name=name, entity='peilab')
+    # wandb.init(project='EasyFL_{}'.format(dataset), name=name, entity='peilab')
 
     parser = argparse.ArgumentParser(description='FedSSL')
     parser.add_argument("--task_id", type=str, default=task_id)
@@ -67,8 +60,8 @@ def run():
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
 
-    parser.add_argument('--batch_size', default=300, type=int)
-    parser.add_argument('--local_epoch', default=5, type=int)
+    parser.add_argument('--batch_size', default=500, type=int)
+    parser.add_argument('--local_epoch', default=1, type=int)
     parser.add_argument('--rounds', default=100, type=int)
     parser.add_argument('--num_of_clients', default=5, type=int)
     parser.add_argument('--clients_per_round', default=5, type=int)
@@ -179,14 +172,20 @@ def run():
             "predictor_weight": args.predictor_weight,
 
             "momentum_update": momentum_update,
+            'personalized': personalized,
+            'semantic_align': semantic_align,
+            'semantic_method': semantic_method,
+            'aggregation_method': aggregation_method,
         },
         'device': 'cuda',
         'resource_heterogeneous': {"grouping_strategy": ""},
         'personalized': personalized,
-        'batch_wise': batch_wise,
         'semantic_align': semantic_align,
         'semantic_method': semantic_method,
         'aggregation_method': aggregation_method,
+        'encoder_network': args.encoder_network,
+        'predictor_network': args.predictor_network,
+        'fed_para': fed_para
     }
 
     if args.gpu > 1:
@@ -210,7 +209,7 @@ def run():
                                                                args.label_ratio)
         easyfl.register_dataset(train_data, test_data)
 
-    model = get_model(args.model, args.encoder_network, args.predictor_network)
+    model = get_model(args.model, args.encoder_network, args.predictor_network, fed_para)
     model.to('cuda')
     easyfl.register_model(model)
     easyfl.register_client(FedSSLClient)

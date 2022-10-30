@@ -20,6 +20,15 @@ logger = logging.getLogger(__name__)
 
 L2 = "l2"
 
+def recreate_feature(data, b):
+    A = torch.matmul(b, data.t())
+    u, s, v = torch.svd(A)
+    u = torch.matmul(v, u.t())
+    # u = u[:, :select]
+    # b = b[:select]
+    # f = torch.matmul(u, b)
+    return u
+
 
 class FedSSLClient(BaseClient):
     def __init__(self, cid, conf, train_data, test_data, device, sleep_time=0):
@@ -193,6 +202,11 @@ class FedSSLClient(BaseClient):
             self.model.online_predictor = copy.deepcopy(predictor)
 
     def train(self, conf, device=CPU):
+        self.w = 0
+        self.b = 0
+        self.batch = 0
+        kl_loss = torch.nn.MSELoss()
+
         start_time = time.time()
         loss_fn, optimizer = self.pretrain_setup(conf, device)
         if conf.model in [model.MoCo, model.MoCoV2]:
@@ -214,9 +228,40 @@ class FedSSLClient(BaseClient):
                     logits, labels = self.info_nce_loss(features)
                     loss = loss_fn(logits, labels)
                 else:
-                    loss = self.model(x1, x2)
+                    feature1, feature2, loss = self.model(x1, x2)
+                    features = torch.cat((feature1, feature2), dim=0)
 
+                self.batch += 1
+
+                if conf['semantic_align']:
+                    if conf['semantic_method'] == 'SVD':
+                        u, s, v = torch.svd(features.detach())
+                        sigma = torch.diag_embed(s)
+                        self.b += torch.matmul(sigma, v.t())
+                        w = u
+
+                    elif conf['semantic_method'] == 'QR':
+                        w, b = torch.linalg.qr(features.detach())
+                        self.b += b
+
+                if conf['semantic_align']:
+                    if hasattr(self, 'b_dict'):
+                        loss_ours = 0
+                        if conf['aggregation_method'] == 'avg':
+                            b_list = list(self.b_dict.values())
+                            b_avg = sum(b_list)/len(b_list)
+                            feature_restore = torch.matmul(w, b_avg)
+                            loss_ours += kl_loss(features, feature_restore.detach())
+
+                        elif conf['aggregation_method'] == 'semantic':
+                            for one in self.b_dict:
+                                if one != self.cid:
+                                    feature_restore = recreate_feature(features, self.b_dict[one])
+                                    loss_ours += kl_loss(features, feature_restore.detach())/len(self.b_dict)
+
+                        loss += loss_ours
                 loss.backward()
+                torch.nn.utils.clip_grad_norm(self.model.parameters(), max_norm=1, norm_type=2)
                 optimizer.step()
                 batch_loss.append(loss.item())
 
@@ -226,6 +271,7 @@ class FedSSLClient(BaseClient):
             current_epoch_loss = sum(batch_loss) / len(batch_loss)
             self.train_loss.append(float(current_epoch_loss))
         self.train_time = time.time() - start_time
+        self.b /= self.batch
 
         # store trained model locally
         self._local_model = copy.deepcopy(self.model).cpu()

@@ -152,7 +152,17 @@ class FedSSLServer(BaseServer):
             save_path = os.path.join(save_path,
                                      "{}_global_model_r_{}.pth".format(self.conf.task_id, self._current_round))
 
-            torch.save(self._get_testing_model().cpu().state_dict(), save_path)
+            if self.conf['personalized']:
+                for client in self.selected_clients:
+                    save_path_client = os.path.join(save_path,
+                                            "{}_global_model_r_{}_{}.pth".format(self.conf.task_id, self._current_round, client.cid))
+                    torch.save(client._local_model.online_encoder.cpu().state_dict(), save_path_client)
+            else:
+                save_path = os.path.join(save_path,
+                                         "{}_global_model_r_{}.pth".format(self.conf.task_id, self._current_round))
+                torch.save(self._get_testing_model().cpu().state_dict(), save_path)
+
+            self.print_("Encoder model saved at {}".format(save_path))
             self.print_("Encoder model saved at {}".format(save_path))
 
             if self.conf.server.save_predictor:

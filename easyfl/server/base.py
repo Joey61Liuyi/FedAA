@@ -25,6 +25,7 @@ from easyfl.server.service import ServerService
 from easyfl.tracking import metric
 from easyfl.tracking.client import init_tracking
 from easyfl.utils.float import rounding
+from applications.fedssl.model import get_model
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +199,9 @@ class BaseServer(object):
         begin_train_time = time.time()
 
         self.distribution_to_train()
-        self.aggregation()
+
+        if not self.conf['personalized']:
+            self.aggregation()
 
         train_time = time.time() - begin_train_time
         self.print_("Server train time: {}".format(train_time))
@@ -356,19 +359,35 @@ class BaseServer(object):
         uploaded_models = {}
         uploaded_weights = {}
         uploaded_metrics = []
+
+        if self.conf['semantic_align']:
+            b_dict = {}
+
         for client in self.grouped_clients:
             # Update client config before training
             self.conf.client.task_id = self.conf.task_id
             self.conf.client.round_id = self._current_round
+            if hasattr(self, 'b_dict'):
+                client.b_dict = self.b_dict
 
-            uploaded_request = client.run_train(self._compressed_model, self.conf.client)
+            if self.conf['personalized'] and self.conf.client.round_id == 0:
+                model = get_model(self.conf.model, self.conf.encoder_network, self.conf.predictor_network, self.conf.fed_para)
+            else:
+                model = self._compressed_model
+
+            uploaded_request = client.run_train(model, self.conf.client)
             uploaded_content = uploaded_request.content
+
+            if self.conf['semantic_align']:
+                b_dict[client.cid] = client.b
 
             model = self.decompression(codec.unmarshal(uploaded_content.data))
             uploaded_models[client.cid] = model
             uploaded_weights[client.cid] = uploaded_content.data_size
             uploaded_metrics.append(metric.ClientMetric.from_proto(uploaded_content.metric))
 
+        if self.conf['semantic_align']:
+            self.b_dict = b_dict
         self.set_client_uploads_train(uploaded_models, uploaded_weights, uploaded_metrics)
 
     def distribution_to_train_remotely(self):
