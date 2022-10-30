@@ -149,8 +149,6 @@ class FedSSLServer(BaseServer):
             if save_path == "":
                 save_path = os.path.join(os.getcwd(), "saved_models", self.conf.task_id)
             os.makedirs(save_path, exist_ok=True)
-            save_path = os.path.join(save_path,
-                                     "{}_global_model_r_{}.pth".format(self.conf.task_id, self._current_round))
 
             if self.conf['personalized']:
                 for client in self.selected_clients:

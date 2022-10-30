@@ -15,10 +15,10 @@ def run():
     dataset = 'cifar10'
     fed_ema = False
     personalized = True  # whether you use individual model without aggregation
-    semantic_align = False
-    fed_para = True
+    semantic_align = True
+    fed_para = False
     semantic_method = 'QR'
-    aggregation_method = 'semantic'
+    aggregation_method = 'avg'
 
     if fed_ema:
         name = 'fedema'
@@ -47,7 +47,7 @@ def run():
         name = name0+name1+name3
 
     task_id = name
-    # wandb.init(project='EasyFL_{}'.format(dataset), name=name, entity='peilab')
+    wandb.init(project='EasyFL_{}'.format(dataset), name=name, entity='peilab')
 
     parser = argparse.ArgumentParser(description='FedSSL')
     parser.add_argument("--task_id", type=str, default=task_id)
