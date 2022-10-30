@@ -7,26 +7,72 @@ from easyfl.datasets.data import CIFAR100
 from easyfl.distributed import slurm
 from model import get_model, BYOLNoEMA, BYOL, BYOLNoSG, BYOLNoEMA_NoSG
 from server import FedSSLServer
+import wandb
 
 
 def run():
+
+    dataset = 'cifar10'
+    fed_ema = False
+    personalized = True  # whether you use individual model without aggregation
+    batch_wise = False  # whether to use batch_wise training paradim
+    semantic_align = False
+    fed_para = False
+    semantic_method = 'QR'
+    aggregation_method = 'semantic'
+
+    if fed_ema:
+        name = 'fedema'
+        personalized = False
+        model = 'byol'
+        update_encoder = 'dynamic_ema_online'
+        update_predictor = 'dynamic_dapu'
+        batch_wise = True
+        semantic_align = False
+    else:
+        model = 'byol'
+        update_encoder = 'online'
+        update_predictor = 'global'
+
+        name0 = model
+        if personalized:
+            name1 = '_local_'
+        else:
+            name1 = '_weights_agg_'
+
+        if batch_wise:
+            name2 = 'batch_wise_'
+        else:
+            name2 = 'epoch_wise_'
+
+        if semantic_align:
+            name3 = semantic_method + '_' + aggregation_method
+        else:
+            name3 = ''
+        if fed_para:
+            name3 = 'fed_para'
+        name = name0+name1+name2+name3
+
+    task_id = name
+    wandb.init(project='EasyFL_{}'.format(dataset), name=name, entity='peilab')
+
     parser = argparse.ArgumentParser(description='FedSSL')
-    parser.add_argument("--task_id", type=str, default="fedema")
-    parser.add_argument("--dataset", type=str, default='cifar10', help='options: cifar10, cifar100')
+    parser.add_argument("--task_id", type=str, default=task_id)
+    parser.add_argument("--dataset", type=str, default=dataset, help='options: cifar10, cifar100')
     parser.add_argument("--data_partition", type=str, default='class', help='options: class, iid, dir')
     parser.add_argument("--dir_alpha", type=float, default=0.1, help='alpha for dirichlet sampling')
-    parser.add_argument('--model', default='simclr', type=str, help='options: byol, simsiam, simclr, moco, moco_v2')
+    parser.add_argument('--model', default=model, type=str, help='options: byol, simsiam, simclr, moco, moco_v2')
     parser.add_argument('--encoder_network', default='resnet18', type=str,
                         help='network architecture of encoder, options: resnet18, resnet50')
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
 
-    parser.add_argument('--batch_size', default=128, type=int)
+    parser.add_argument('--batch_size', default=300, type=int)
     parser.add_argument('--local_epoch', default=5, type=int)
     parser.add_argument('--rounds', default=100, type=int)
     parser.add_argument('--num_of_clients', default=5, type=int)
     parser.add_argument('--clients_per_round', default=5, type=int)
-    parser.add_argument('--class_per_client', default=2, type=int,
+    parser.add_argument('--class_per_client', default=10, type=int,
                         help='for non-IID setting, number of classes each client, based on CIFAR10')
     parser.add_argument('--optimizer_type', default='SGD', type=str, help='optimizer type')
     parser.add_argument('--lr', default=0.032, type=float)
@@ -34,8 +80,8 @@ def run():
     parser.add_argument('--random_selection', action='store_true', help='whether randomly select clients')
 
     parser.add_argument('--aggregate_encoder', default='online', type=str, help='options: online, target')
-    parser.add_argument('--update_encoder', default='dynamic_ema_online', type=str, help='options: online, target, both, none')
-    parser.add_argument('--update_predictor', default='dynamic_dapu', type=str, help='options: global, local, dapu')
+    parser.add_argument('--update_encoder', default=update_encoder, type=str, help='options: online, target, both, none')
+    parser.add_argument('--update_predictor', default=update_predictor, type=str, help='options: global, local, dapu')
     parser.add_argument('--dapu_threshold', default=0.4, type=float, help='DAPU threshold value')
     parser.add_argument('--weight_scaler', default=1.0, type=float, help='weight scaler for different class per client')
     parser.add_argument('--auto_scaler', default='y', type=str, help='use value to compute auto scaler')
@@ -46,14 +92,14 @@ def run():
     parser.add_argument('--predictor_weight', type=float, default=0,
                         help='for ema predictor update, apply on local predictor')
 
-    parser.add_argument('--test_every', default=10, type=int, help='test every x rounds')
+    parser.add_argument('--test_every', default=100, type=int, help='test every x rounds')
     parser.add_argument('--save_model_every', default=10, type=int, help='save model every x rounds')
     parser.add_argument('--save_predictor', action='store_true', help='whether save predictor')
 
-    parser.add_argument('--semi_supervised', action='store_true', help='whether to train with semi-supervised data')
-    parser.add_argument('--label_ratio', default=0.01, type=float, help='percentage of labeled data')
+    parser.add_argument('--semi_supervised', default=0, help='whether to train with semi-supervised data')
+    parser.add_argument('--label_ratio', default=0.0, type=float, help='percentage of labeled data')
 
-    parser.add_argument('--gpu', default=0, type=int)
+    parser.add_argument('--gpu', default=1, type=int)
     parser.add_argument('--run_count', default=0, type=int)
 
     args = parser.parse_args()
@@ -134,7 +180,13 @@ def run():
 
             "momentum_update": momentum_update,
         },
-        'resource_heterogeneous': {"grouping_strategy": ""}
+        'device': 'cuda',
+        'resource_heterogeneous': {"grouping_strategy": ""},
+        'personalized': personalized,
+        'batch_wise': batch_wise,
+        'semantic_align': semantic_align,
+        'semantic_method': semantic_method,
+        'aggregation_method': aggregation_method,
     }
 
     if args.gpu > 1:

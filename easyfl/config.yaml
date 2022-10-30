@@ -81,7 +81,7 @@ client:
   seed: 0
   local_test: False  # Whether test the trained models in clients before uploading them to the server.
 
-gpu: 0  # The total number of GPUs used in training. 0 means CPU.
+gpu: 1  # The total number of GPUs used in training. 0 means CPU.
 distributed:  # The distributed training configurations. It is only applicable when gpu > 1.
   backend: "nccl"  # The distributed backend.
   init_method: ""
