@@ -13,37 +13,38 @@ import wandb
 def run():
 
     dataset = 'cifar10'
-    fed_ema = True
-    personalized = False  # whether you use individual model without aggregation
-    semantic_align = False
+    fed_ema = False
+    personalized = True  # whether you use individual model without aggregation
+    semantic_align = True
     fed_para = False
     semantic_method = 'QR'
     aggregation_method = 'avg'
 
     if fed_ema:
+        name = 'fedema'
         personalized = False
         model = 'byol'
-        name0 = 'fedema'
         update_encoder = 'dynamic_ema_online'
         update_predictor = 'dynamic_dapu'
+        semantic_align = False
     else:
         model = 'byol'
         update_encoder = 'online'
         update_predictor = 'global'
+
         name0 = model
+        if personalized:
+            name1 = '_local_'
+        else:
+            name1 = '_weights_agg_'
 
-    if personalized:
-        name1 = '_local_'
-    else:
-        name1 = '_weights_agg_'
-
-    if semantic_align:
-        name3 = semantic_method + '_' + aggregation_method
-    else:
-        name3 = ''
-    if fed_para:
-        name3 = 'fed_para'
-    name = name0+name1+name3
+        if semantic_align:
+            name3 = semantic_method + '_' + aggregation_method
+        else:
+            name3 = ''
+        if fed_para:
+            name3 = 'fed_para'
+        name = name0+name1+name3
 
     task_id = name
     wandb.init(project='EasyFL_{}'.format(dataset), name=name, entity='peilab')
@@ -60,7 +61,7 @@ def run():
                         help='network of predictor, options: 1_layer, 2_layer')
 
     parser.add_argument('--batch_size', default=500, type=int)
-    parser.add_argument('--local_epoch', default=5, type=int)
+    parser.add_argument('--local_epoch', default=1, type=int)
     parser.add_argument('--rounds', default=100, type=int)
     parser.add_argument('--num_of_clients', default=5, type=int)
     parser.add_argument('--clients_per_round', default=5, type=int)
