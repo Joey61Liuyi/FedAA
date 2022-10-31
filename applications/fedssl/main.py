@@ -21,31 +21,30 @@ def run():
     aggregation_method = 'avg'
 
     if fed_ema:
-        name = 'fedema'
         personalized = False
         model = 'byol'
+        name0 = 'fedema'
         update_encoder = 'dynamic_ema_online'
         update_predictor = 'dynamic_dapu'
-        semantic_align = False
     else:
         model = 'byol'
         update_encoder = 'online'
         update_predictor = 'global'
 
         name0 = model
-        if personalized:
-            name1 = '_local_'
-        else:
-            name1 = '_weights_agg_'
 
-        if semantic_align:
-            name3 = semantic_method + '_' + aggregation_method
-        else:
-            name3 = ''
-        if fed_para:
-            name3 = 'fed_para'
-        name = name0+name1+name3
+    if personalized:
+        name1 = '_local_'
+    else:
+        name1 = '_weights_agg_'
 
+    if semantic_align:
+        name3 = semantic_method + '_' + aggregation_method
+    else:
+        name3 = ''
+    if fed_para:
+        name3 = 'fed_para'
+    name = name0+name1+name3
     task_id = name
     wandb.init(project='EasyFL_{}'.format(dataset), name=name, entity='peilab')
 
