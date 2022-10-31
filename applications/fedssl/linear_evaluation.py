@@ -105,7 +105,7 @@ def test_result(test_loader, logreg, device, model_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="cifar10", type=str)
-    parser.add_argument("--model_path", default='./saved_models/byol_local_epoch_wise_/byol_local_epoch_wise__global_model_r_99_f0000000.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
+    parser.add_argument("--model_path", default='./saved_models/byol_local_QR_avg/byol_local_QR_avg_global_model_r_99_f0000003.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
     parser.add_argument('--model', default='simclr', type=str, help='name of the network')
     parser.add_argument("--image_size", default=32, type=int, help="Image size")
     parser.add_argument("--learning_rate", default=3e-3, type=float, help="Initial learning rate.")
@@ -121,7 +121,6 @@ if __name__ == "__main__":
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 
     # get data loaders
-    train_loader, test_loader = get_data_loaders(args.dataset, args.image_size, args.batch_size, args.num_workers)
 
 
     #
@@ -143,7 +142,63 @@ if __name__ == "__main__":
                 resnet.fc = nn.Identity()
             resnet = resnet.to(device)
             models.append(resnet)
-        resnet = models
+
+        acc_list = []
+
+        for resnet in models:
+            train_loader, test_loader = get_data_loaders(args.dataset, args.image_size, args.batch_size,
+                                                         args.num_workers)
+            n_classes = 10
+            if args.dataset == CIFAR100:
+                n_classes = 100
+
+            # fine-tune model
+            logreg = nn.Sequential(nn.Linear(num_features, n_classes))
+            logreg = logreg.to(device)
+
+            # loss / optimizer
+            criterion = nn.CrossEntropyLoss()
+            optimizer = torch.optim.Adam(params=logreg.parameters(), lr=args.learning_rate)
+
+            # compute features (only needs to be done once, since it does not backprop during fine-tuning)
+            print("Creating features from pre-trained model")
+            (train_X, train_y, test_X, test_y) = get_features(
+                resnet, train_loader, test_loader, device
+            )
+
+            train_loader, test_loader = create_data_loaders_from_arrays(
+                train_X, train_y, test_X, test_y, 2048
+            )
+
+            # Train fine-tuned model
+            logreg.train()
+            for epoch in range(args.num_epochs):
+                metrics = defaultdict(list)
+                for step, (h, y) in enumerate(train_loader):
+                    h = h.to(device)
+                    y = y.to(device)
+
+                    outputs = logreg(h)
+
+                    loss = criterion(outputs, y)
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+
+                    # calculate accuracy and save metrics
+                    accuracy = (outputs.argmax(1) == y).sum().item() / y.size(0)
+                    metrics["Loss/train"].append(loss.item())
+                    metrics["Accuracy/train"].append(accuracy)
+
+                print(f"Epoch [{epoch}/{args.num_epochs}]: " + "\t".join(
+                    [f"{k}: {np.array(v).mean()}" for k, v in metrics.items()]))
+
+                if epoch % 100 == 0:
+                    print("======epoch {}======".format(epoch))
+                    test_result(test_loader, logreg, device, args.model_path)
+            acc_list.append(test_result(test_loader, logreg, device, args.model_path))
+        print(acc_list)
+
     else:
         resnet = get_encoder_network(args.model, args.encoder_network)
         resnet.load_state_dict(torch.load(args.model_path, map_location=device))
@@ -154,52 +209,52 @@ if __name__ == "__main__":
         else:
             resnet.fc = nn.Identity()
 
-    n_classes = 10
-    if args.dataset == CIFAR100:
-        n_classes = 100
+        n_classes = 10
+        if args.dataset == CIFAR100:
+            n_classes = 100
 
-    # fine-tune model
-    logreg = nn.Sequential(nn.Linear(num_features, n_classes))
-    logreg = logreg.to(device)
+        # fine-tune model
+        logreg = nn.Sequential(nn.Linear(num_features, n_classes))
+        logreg = logreg.to(device)
 
-    # loss / optimizer
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(params=logreg.parameters(), lr=args.learning_rate)
+        # loss / optimizer
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(params=logreg.parameters(), lr=args.learning_rate)
 
-    # compute features (only needs to be done once, since it does not backprop during fine-tuning)
-    print("Creating features from pre-trained model")
-    (train_X, train_y, test_X, test_y) = get_features(
-        resnet, train_loader, test_loader, device
-    )
+        # compute features (only needs to be done once, since it does not backprop during fine-tuning)
+        print("Creating features from pre-trained model")
+        (train_X, train_y, test_X, test_y) = get_features(
+            resnet, train_loader, test_loader, device
+        )
 
-    train_loader, test_loader = create_data_loaders_from_arrays(
-        train_X, train_y, test_X, test_y, 2048
-    )
+        train_loader, test_loader = create_data_loaders_from_arrays(
+            train_X, train_y, test_X, test_y, 2048
+        )
 
-    # Train fine-tuned model
-    logreg.train()
-    for epoch in range(args.num_epochs):
-        metrics = defaultdict(list)
-        for step, (h, y) in enumerate(train_loader):
-            h = h.to(device)
-            y = y.to(device)
+        # Train fine-tuned model
+        logreg.train()
+        for epoch in range(args.num_epochs):
+            metrics = defaultdict(list)
+            for step, (h, y) in enumerate(train_loader):
+                h = h.to(device)
+                y = y.to(device)
 
-            outputs = logreg(h)
+                outputs = logreg(h)
 
-            loss = criterion(outputs, y)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+                loss = criterion(outputs, y)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
-            # calculate accuracy and save metrics
-            accuracy = (outputs.argmax(1) == y).sum().item() / y.size(0)
-            metrics["Loss/train"].append(loss.item())
-            metrics["Accuracy/train"].append(accuracy)
+                # calculate accuracy and save metrics
+                accuracy = (outputs.argmax(1) == y).sum().item() / y.size(0)
+                metrics["Loss/train"].append(loss.item())
+                metrics["Accuracy/train"].append(accuracy)
 
-        print(f"Epoch [{epoch}/{args.num_epochs}]: " + "\t".join(
-            [f"{k}: {np.array(v).mean()}" for k, v in metrics.items()]))
+            print(f"Epoch [{epoch}/{args.num_epochs}]: " + "\t".join(
+                [f"{k}: {np.array(v).mean()}" for k, v in metrics.items()]))
 
-        if epoch % 100 == 0:
-            print("======epoch {}======".format(epoch))
-            test_result(test_loader, logreg, device, args.model_path)
-    test_result(test_loader, logreg, device, args.model_path)
+            if epoch % 100 == 0:
+                print("======epoch {}======".format(epoch))
+                test_result(test_loader, logreg, device, args.model_path)
+        test_result(test_loader, logreg, device, args.model_path)
