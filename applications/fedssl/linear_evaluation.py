@@ -8,6 +8,15 @@ import torch.nn as nn
 from easyfl.datasets.data import CIFAR100
 from eval_dataset import get_data_loaders
 from model import get_encoder_network
+import random
+
+
+def set_random_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
 
 
 def inference(loader, model, device):
@@ -103,9 +112,10 @@ def test_result(test_loader, logreg, device, model_path):
 
 
 if __name__ == "__main__":
+    set_random_seed(0)
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="cifar10", type=str)
-    parser.add_argument("--model_path", default='./saved_models/byol_local_epoch_wise_/byol_local_epoch_wise__global_model_r_99_f0000000.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
+    parser.add_argument("--model_path", default='./saved_models/fedema/fedema_global_model_r_79.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
     parser.add_argument('--model', default='simclr', type=str, help='name of the network')
     parser.add_argument("--image_size", default=32, type=int, help="Image size")
     parser.add_argument("--learning_rate", default=3e-3, type=float, help="Initial learning rate.")
@@ -113,7 +123,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_epochs", default=200, type=int, help="Number of epochs to train for.")
     parser.add_argument("--encoder_network", default="resnet18", type=str, help="Encoder network architecture.")
     parser.add_argument("--num_workers", default=8, type=int, help="Number of data workers (caution with nodes!)")
-    parser.add_argument("--personalized", default=True, type=bool, help="Number of data workers (caution with nodes!)")
+    parser.add_argument("--personalized", default=False, type=bool, help="Number of data workers (caution with nodes!)")
     parser.add_argument("--fc", default="identity", help="options: identity, remove")
     args = parser.parse_args()
     print(args)
