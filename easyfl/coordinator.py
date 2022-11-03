@@ -101,7 +101,7 @@ class Coordinator(object):
         """Initialize datasets. Use provided datasets if not registered."""
         if self.registered_dataset:
             return
-        self.train_data, self.test_data = construct_datasets(self.conf.data.root,
+        self.train_data, self.test_data, self.public_data = construct_datasets(self.conf.data.root,
                                                              self.conf.data.dataset,
                                                              self.conf.data.num_of_clients,
                                                              self.conf.data.split_type,
@@ -116,6 +116,7 @@ class Coordinator(object):
 
         self.print_(f"Total training data amount: {self.train_data.total_size()}")
         self.print_(f"Total testing data amount: {self.test_data.total_size()}")
+        self.print_(f"Total public data amount: {self.public_data.total_size()}")
 
     def init_model(self):
         """Initialize model instance."""

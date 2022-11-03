@@ -6,7 +6,7 @@ import torchvision.models as models
 from torch import nn
 
 from easyfl.models.model import BaseModel
-from easyfl.models.resnet import ResNet18, ResNet50
+from easyfl.models.resnet import ResNet18, ResNet50, ResNet34
 
 SimSiam = "simsiam"
 SimSiamNoSG = "simsiam_no_sg"
@@ -25,6 +25,7 @@ OneLayer = "1_layer"
 TwoLayer = "2_layer"
 
 RESNET18 = "resnet18"
+RESNET34 = 'resnet34'
 RESNET50 = "resnet50"
 
 
@@ -79,6 +80,8 @@ def get_model(model, encoder_network, predictor_network=TwoLayer, fed_para=False
         net = ResNet18()
         if encoder_network == RESNET50:
             net = ResNet50()
+        elif encoder_network == RESNET34:
+            net = ResNet34()
         return BYOLModel(net=net, stop_gradient=stop_gradient, has_predictor=has_predictor,
                          predictor_network=predictor_network)
     elif model == SimCLR:

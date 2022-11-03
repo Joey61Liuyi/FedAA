@@ -371,7 +371,8 @@ class BaseServer(object):
                 client.b_dict = self.b_dict
 
             if self.conf['personalized'] and self.conf.client.round_id == 0:
-                model = get_model(self.conf.model, self.conf.encoder_network, self.conf.predictor_network, self.conf.fed_para)
+                encoder_network = self.conf['heterogeneous_network'][client.cid]
+                model = get_model(self.conf.model, encoder_network, self.conf.predictor_network, self.conf.fed_para)
             else:
                 model = self._compressed_model
 

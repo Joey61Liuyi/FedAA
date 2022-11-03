@@ -13,9 +13,15 @@ import wandb
 def run():
 
     dataset = 'cifar10'
+    user_num = 2
     fed_ema = False
-    personalized = True  # whether you use individual model without aggregation
-    semantic_align = True
+    personalized = True
+    heterogeneous_network = {
+        'f0000000': 'resnet18',
+        'f0000001': 'resnet34'
+    }
+    # whether you use individual model without aggregation
+    semantic_align = False
     fed_para = False
     semantic_method = 'QR'
     aggregation_method = 'avg'
@@ -46,8 +52,7 @@ def run():
         name3 = 'fed_para'
     name = name0+name1+name3
     task_id = name
-    wandb.init(project='EasyFL_{}'.format(dataset), name=name, entity='peilab')
-
+    # wandb.init(project='EasyFL_{}'.format(dataset), name=name, entity='peilab')
     parser = argparse.ArgumentParser(description='FedSSL')
     parser.add_argument("--task_id", type=str, default=task_id)
     parser.add_argument("--dataset", type=str, default=dataset, help='options: cifar10, cifar100')
@@ -58,19 +63,17 @@ def run():
                         help='network architecture of encoder, options: resnet18, resnet50')
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
-
     parser.add_argument('--batch_size', default=500, type=int)
     parser.add_argument('--local_epoch', default=1, type=int)
     parser.add_argument('--rounds', default=100, type=int)
-    parser.add_argument('--num_of_clients', default=5, type=int)
-    parser.add_argument('--clients_per_round', default=5, type=int)
+    parser.add_argument('--num_of_clients', default=user_num, type=int)
+    parser.add_argument('--clients_per_round', default=user_num, type=int)
     parser.add_argument('--class_per_client', default=10, type=int,
                         help='for non-IID setting, number of classes each client, based on CIFAR10')
     parser.add_argument('--optimizer_type', default='SGD', type=str, help='optimizer type')
     parser.add_argument('--lr', default=0.032, type=float)
     parser.add_argument('--lr_type', default='cosine', type=str, help='cosine decay learning rate')
     parser.add_argument('--random_selection', action='store_true', help='whether randomly select clients')
-
     parser.add_argument('--aggregate_encoder', default='online', type=str, help='options: online, target')
     parser.add_argument('--update_encoder', default=update_encoder, type=str, help='options: online, target, both, none')
     parser.add_argument('--update_predictor', default=update_predictor, type=str, help='options: global, local, dapu')
@@ -184,7 +187,8 @@ def run():
         'aggregation_method': aggregation_method,
         'encoder_network': args.encoder_network,
         'predictor_network': args.predictor_network,
-        'fed_para': fed_para
+        'fed_para': fed_para,
+        'heterogeneous_network':heterogeneous_network
     }
 
     if args.gpu > 1:

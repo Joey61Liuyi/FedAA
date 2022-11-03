@@ -2,6 +2,7 @@ import importlib
 import json
 import logging
 import os
+import numpy as np
 
 from easyfl.datasets.dataset import FederatedTensorDataset
 from easyfl.datasets.utils.base_dataset import BaseDataset, CIFAR10, CIFAR100
@@ -224,6 +225,25 @@ def construct_datasets(root,
                                                                                              alpha)
 
     # CIFAR datasets are simulated.
+    partio = 1/4
+    public_data = {'x':[], 'y':[]}
+
+    for client in train_data:
+        num = len(train_data[client]['y'])
+        num_index = int(num*partio)
+        index = np.random.choice(num, num_index, replace=False)
+        rest_index = list(set(range(num))-set(index))
+        public_index = np.random.choice(rest_index, int(num*partio/10))
+
+        public_data['x'].append(train_data[client]['x'][public_index])
+        public_data['y'].append(train_data[client]['y'][public_index])
+
+        train_data[client]['x'] = train_data[client]['x'][index]
+        train_data[client]['y'] = train_data[client]['y'][index]
+
+    public_data['x'] = np.concatenate(public_data['x'])
+    public_data['y'] = np.concatenate(public_data['y'])
+
     test_simulated = True
     if dataset_name == CIFAR10 or dataset_name == CIFAR100:
         test_simulated = False
@@ -240,4 +260,11 @@ def construct_datasets(root,
                                        process_x=process_x,
                                        process_y=process_y,
                                        transform=transform_test)
-    return train_data, test_data
+
+    public_data = FederatedTensorDataset(public_data,simulated=test_simulated,
+                                       do_simulate=False,
+                                       process_x=process_x,
+                                       process_y=process_y,
+                                       transform=transform_test)
+
+    return train_data, test_data, public_data
