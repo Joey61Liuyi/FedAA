@@ -387,6 +387,40 @@ class BaseServer(object):
             uploaded_weights[client.cid] = uploaded_content.data_size
             uploaded_metrics.append(metric.ClientMetric.from_proto(uploaded_content.metric))
 
+        if self.conf['MD'] and self.conf['personalized']:
+            for epoch in range(self.conf.client['local_epoch']):
+                for image, label in self.public_data_loader:
+                    image = image.to('cuda')
+                    feature_ensemble = []
+                    for client in self.grouped_clients:
+                        client._local_model.to('cuda')
+                        client._local_model.eval()
+                        feature = client._local_model.online_encoder(image)
+                        feature_ensemble.append(feature)
+                    feature_ensemble =  sum(feature_ensemble)/len(feature_ensemble)
+                    feature_ensemble = feature_ensemble.detach()
+
+                    for client in self.grouped_clients:
+                        client._local_model.train()
+                        if self.conf.client.optimizer.type == "Adam":
+                            optimizer = torch.optim.Adam(client._local_model.parameters(), lr=self.conf.client.optimizer.lr)
+                        else:
+                            # default using optimizer SGD
+                            optimizer = torch.optim.SGD(client._local_model.parameters(),
+                                                        lr=self.conf.client.optimizer.lr,
+                                                        momentum=self.conf.client.optimizer.momentum,
+                                                        weight_decay=self.conf.client.optimizer.weight_decay)
+                        loss_fn = torch.nn.MSELoss()
+                        feature = client._local_model.online_encoder(image)
+                        loss = loss_fn(feature, feature_ensemble)
+                        loss.backward()
+                        torch.nn.utils.clip_grad_norm(client._local_model.parameters(), max_norm=1, norm_type=2)
+                        optimizer.step()
+
+                    for client in self.grouped_clients:
+                        client._local_model.to('cpu')
+                        client._local_model.eval()
+
         if self.conf['semantic_align']:
             self.b_dict = b_dict
         self.set_client_uploads_train(uploaded_models, uploaded_weights, uploaded_metrics)

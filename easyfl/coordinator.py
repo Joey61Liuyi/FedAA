@@ -77,6 +77,8 @@ class Coordinator(object):
                 self.conf.distributed.rank,
                 self.conf.distributed.local_rank,
             )
+
+        self.server.public_data_loader = self.public_data.loader(self.conf.client['batch_size'])
         self.server.start(self.model, self.clients)
         self.print_("Total training time {:.1f}s".format(time.time() - start_time))
 

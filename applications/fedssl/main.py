@@ -20,6 +20,7 @@ def run():
         'f0000000': 'resnet18',
         'f0000001': 'resnet34'
     }
+    MD = True
     # whether you use individual model without aggregation
     semantic_align = False
     fed_para = False
@@ -50,21 +51,25 @@ def run():
         name3 = ''
     if fed_para:
         name3 = 'fed_para'
+
     name = name0+name1+name3
+    if MD:
+        name += 'MD'
+    name += '_Non_IID'
     task_id = name
     # wandb.init(project='EasyFL_{}'.format(dataset), name=name, entity='peilab')
     parser = argparse.ArgumentParser(description='FedSSL')
     parser.add_argument("--task_id", type=str, default=task_id)
     parser.add_argument("--dataset", type=str, default=dataset, help='options: cifar10, cifar100')
-    parser.add_argument("--data_partition", type=str, default='class', help='options: class, iid, dir')
-    parser.add_argument("--dir_alpha", type=float, default=0.1, help='alpha for dirichlet sampling')
+    parser.add_argument("--data_partition", type=str, default='dir', help='options: class, iid, dir')
+    parser.add_argument("--dir_alpha", type=float, default=0.5, help='alpha for dirichlet sampling')
     parser.add_argument('--model', default=model, type=str, help='options: byol, simsiam, simclr, moco, moco_v2')
     parser.add_argument('--encoder_network', default='resnet18', type=str,
                         help='network architecture of encoder, options: resnet18, resnet50')
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
     parser.add_argument('--batch_size', default=500, type=int)
-    parser.add_argument('--local_epoch', default=1, type=int)
+    parser.add_argument('--local_epoch', default=5, type=int)
     parser.add_argument('--rounds', default=100, type=int)
     parser.add_argument('--num_of_clients', default=user_num, type=int)
     parser.add_argument('--clients_per_round', default=user_num, type=int)
@@ -178,6 +183,7 @@ def run():
             'semantic_align': semantic_align,
             'semantic_method': semantic_method,
             'aggregation_method': aggregation_method,
+            'MD': MD
         },
         'device': 'cuda',
         'resource_heterogeneous': {"grouping_strategy": ""},
@@ -188,7 +194,8 @@ def run():
         'encoder_network': args.encoder_network,
         'predictor_network': args.predictor_network,
         'fed_para': fed_para,
-        'heterogeneous_network':heterogeneous_network
+        'heterogeneous_network': heterogeneous_network,
+        'MD': MD
     }
 
     if args.gpu > 1:
