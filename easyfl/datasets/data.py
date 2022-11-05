@@ -225,21 +225,19 @@ def construct_datasets(root,
                                                                                              alpha)
 
     # CIFAR datasets are simulated.
-    partio = 1/4
     public_data = {'x':[], 'y':[]}
 
     for client in train_data:
         num = len(train_data[client]['y'])
-        num_index = int(num*partio)
+        num_index = int(num/10)
         index = np.random.choice(num, num_index, replace=False)
         rest_index = list(set(range(num))-set(index))
-        public_index = np.random.choice(rest_index, int(num*partio/10))
 
-        public_data['x'].append(train_data[client]['x'][public_index])
-        public_data['y'].append(train_data[client]['y'][public_index])
+        public_data['x'].append(train_data[client]['x'][index])
+        public_data['y'].append(train_data[client]['y'][index])
 
-        train_data[client]['x'] = train_data[client]['x'][index]
-        train_data[client]['y'] = train_data[client]['y'][index]
+        train_data[client]['x'] = train_data[client]['x'][rest_index]
+        train_data[client]['y'] = train_data[client]['y'][rest_index]
 
     public_data['x'] = np.concatenate(public_data['x'])
     public_data['y'] = np.concatenate(public_data['y'])

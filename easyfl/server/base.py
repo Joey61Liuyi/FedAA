@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import torch.distributed as dist
 from omegaconf import OmegaConf
-
+import wandb
 from easyfl.communication import grpc_wrapper
 from easyfl.datasets import TEST_IN_SERVER
 from easyfl.distributed import grouping, reduce_models, reduce_models_only_params, \
@@ -386,6 +386,30 @@ class BaseServer(object):
             uploaded_models[client.cid] = model
             uploaded_weights[client.cid] = uploaded_content.data_size
             uploaded_metrics.append(metric.ClientMetric.from_proto(uploaded_content.metric))
+
+
+
+        if self.conf['test_dis']:
+            feature_num = 0
+            var_sum = 0
+            for image, label in self.public_data_loader:
+                image = image.to('cuda')
+                feature_ensemble = []
+                for client in self.grouped_clients:
+                    client._local_model.to('cuda')
+                    client._local_model.eval()
+                    feature = client._local_model.online_encoder(image)
+                    feature_ensemble.append(feature.detach().view(-1).unsqueeze(0))
+                feature_ensemble = torch.cat(feature_ensemble, dim=1)
+                feature_ensemble = torch.var(feature_ensemble, dim = 0)
+                feature_num += feature_ensemble.numel()
+                var_sum += feature_ensemble.sum().item()
+            avg_var = var_sum/feature_num
+            info_dict = {
+                'round': self.conf.client.round_id,
+                'feature_var': avg_var
+            }
+            wandb.log(info_dict)
 
         if self.conf['MD'] and self.conf['personalized']:
             for epoch in range(self.conf.client['local_epoch']):

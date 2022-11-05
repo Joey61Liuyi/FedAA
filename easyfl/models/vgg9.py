@@ -29,7 +29,11 @@ class Model(BaseModel):
     def __init__(self, features=make_layers(cfg['VGG9'], batch_norm=False), num_classes=10):
         super(Model, self).__init__()
         self.features = features
-        self.classifier = nn.Sequential(
+
+
+        self.feature_dim = 4096
+
+        self.fc = nn.Sequential(
             nn.Dropout(p=0.1),
             nn.Linear(4096, 512),
             nn.ReLU(True),
@@ -43,7 +47,7 @@ class Model(BaseModel):
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        x = self.fc(x)
         return x
 
     def _initialize_weights(self):
