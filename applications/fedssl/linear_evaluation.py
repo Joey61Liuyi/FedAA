@@ -113,7 +113,7 @@ if __name__ == "__main__":
     set_random_seed(0)
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="cifar10", type=str)
-    parser.add_argument("--model_path", default='./saved_models/byol_local_MD_Non_IID/byol_local_MD_Non_IID_global_model_r_99_f0000000.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
+    parser.add_argument("--model_path", default='./saved_models/byol_local_/byol_local__global_model_r_99_f0000000.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
     parser.add_argument('--model', default='byol', type=str, help='name of the network')
     parser.add_argument("--image_size", default=32, type=int, help="Image size")
     parser.add_argument("--learning_rate", default=3e-3, type=float, help="Initial learning rate.")
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_epochs", default=200, type=int, help="Number of epochs to train for.")
     parser.add_argument("--encoder_network", default="resnet18", type=str, help="Encoder network architecture.")
     parser.add_argument("--num_workers", default=8, type=int, help="Number of data workers (caution with nodes!)")
-    parser.add_argument("--personalized", default=False, type=bool, help="Number of data workers (caution with nodes!)")
+    parser.add_argument("--personalized", default=True, type=bool, help="Number of data workers (caution with nodes!)")
     parser.add_argument("--fc", default="identity", help="options: identity, remove")
     args = parser.parse_args()
     print(args)
@@ -129,30 +129,98 @@ if __name__ == "__main__":
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 
     # get data loaders
-    train_loader, test_loader = get_data_loaders(args.dataset, args.image_size, args.batch_size, args.num_workers)
 
 
-    #
-    #
     model_name = ['f0000000.pth','f0000001.pth', 'f0000002.pth', 'f0000003.pth', 'f0000004.pth']
+
+    model_dict ={
+        './saved_models/byol_local_/byol_local__global_model_r_99_f0000000.pth': 'alexnet',
+        './saved_models/byol_local_/byol_local__global_model_r_99_f0000001.pth': 'resnet18',
+        './saved_models/byol_local_/byol_local__global_model_r_99_f0000002.pth': 'vgg9',
+        './saved_models/byol_local_/byol_local__global_model_r_99_f0000003.pth': 'resnet34',
+        './saved_models/byol_local_/byol_local__global_model_r_99_f0000004.pth': 'alexnet',
+    }
+
     models = []
     if args.personalized:
-        name_list = args.model_path.split('_')
-        for name in model_name:
-            name_list.pop()
-            name_list.append(name)
-            model = '_'.join(name_list)
-            resnet = get_encoder_network(args.model, args.encoder_network)
-            resnet.load_state_dict(torch.load(model, map_location = device))
-            num_features = list(resnet.children())[-1].in_features
-            if args.fc == "remove":
-                resnet = nn.Sequential(*list(resnet.children())[:-1])  # throw away fc layer
-            else:
-                resnet.fc = nn.Identity()
-            resnet = resnet.to(device)
-            models.append(resnet)
-        resnet = models
+        # name_list = args.model_path.split('_')
+        # for name in model_name:
+        #     name_list.pop()
+        #     name_list.append(name)
+        #     model = '_'.join(name_list)
+        #     resnet = get_encoder_network(args.model, args.encoder_network)
+        #     resnet.load_state_dict(torch.load(model, map_location = device))
+        #     num_features = list(resnet.children())[-1].in_features
+        #     if args.fc == "remove":
+        #         resnet = nn.Sequential(*list(resnet.children())[:-1])  # throw away fc layer
+        #     else:
+        #         resnet.fc = nn.Identity()
+        #     resnet = resnet.to(device)
+        #     models.append(resnet)
+        # resnet = models
+        acc_list = []
+        for model in model_dict:
+            train_loader, test_loader = get_data_loaders(args.dataset, args.image_size, args.batch_size,
+                                                         args.num_workers)
+            online_encoder = get_encoder_network(args.model, model_dict[model])
+            online_encoder.load_state_dict(torch.load(model, map_location=device))
+            online_encoder = online_encoder.to(device)
+            num_features = online_encoder.feature_dim
+            online_encoder.fc = nn.Identity()
+            n_classes = 10
+            if args.dataset == CIFAR100:
+                n_classes = 100
+
+            logreg = nn.Sequential(nn.Linear(num_features, n_classes))
+            logreg = logreg.to(device)
+
+            # loss / optimizer
+            criterion = nn.CrossEntropyLoss()
+            optimizer = torch.optim.Adam(params=logreg.parameters(), lr=args.learning_rate)
+
+            print("Creating features from pre-trained model")
+            (train_X, train_y, test_X, test_y) = get_features(
+                online_encoder, train_loader, test_loader, device
+            )
+
+            train_loader, test_loader = create_data_loaders_from_arrays(
+                train_X, train_y, test_X, test_y, 2048
+            )
+            logreg.train()
+            for epoch in range(args.num_epochs):
+                metrics = defaultdict(list)
+                for step, (h, y) in enumerate(train_loader):
+                    h = h.to(device)
+                    y = y.to(device)
+
+                    outputs = logreg(h)
+
+                    loss = criterion(outputs, y)
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+
+                    # calculate accuracy and save metrics
+                    accuracy = (outputs.argmax(1) == y).sum().item() / y.size(0)
+                    metrics["Loss/train"].append(loss.item())
+                    metrics["Accuracy/train"].append(accuracy)
+
+                print(f"Epoch [{epoch}/{args.num_epochs}]: " + "\t".join(
+                    [f"{k}: {np.array(v).mean()}" for k, v in metrics.items()]))
+
+                if epoch % 100 == 0:
+                    print("======epoch {}======".format(epoch))
+                    test_result(test_loader, logreg, device, args.model_path)
+
+            acc = test_result(test_loader, logreg, device, args.model_path)
+            acc_list.append(acc)
+        print('===========')
+        print(acc_list)
+        print(sum(acc_list)/len(acc_list))
+        print('===========')
+
     else:
+        train_loader, test_loader = get_data_loaders(args.dataset, args.image_size, args.batch_size, args.num_workers)
         resnet = get_encoder_network(args.model, args.encoder_network)
         resnet.load_state_dict(torch.load(args.model_path, map_location=device))
         resnet = resnet.to(device)
@@ -162,52 +230,52 @@ if __name__ == "__main__":
         else:
             resnet.fc = nn.Identity()
 
-    n_classes = 10
-    if args.dataset == CIFAR100:
-        n_classes = 100
+        n_classes = 10
+        if args.dataset == CIFAR100:
+            n_classes = 100
 
-    # fine-tune model
-    logreg = nn.Sequential(nn.Linear(num_features, n_classes))
-    logreg = logreg.to(device)
+        # fine-tune model
+        logreg = nn.Sequential(nn.Linear(num_features, n_classes))
+        logreg = logreg.to(device)
 
-    # loss / optimizer
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(params=logreg.parameters(), lr=args.learning_rate)
+        # loss / optimizer
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(params=logreg.parameters(), lr=args.learning_rate)
 
-    # compute features (only needs to be done once, since it does not backprop during fine-tuning)
-    print("Creating features from pre-trained model")
-    (train_X, train_y, test_X, test_y) = get_features(
-        resnet, train_loader, test_loader, device
-    )
+        # compute features (only needs to be done once, since it does not backprop during fine-tuning)
+        print("Creating features from pre-trained model")
+        (train_X, train_y, test_X, test_y) = get_features(
+            resnet, train_loader, test_loader, device
+        )
 
-    train_loader, test_loader = create_data_loaders_from_arrays(
-        train_X, train_y, test_X, test_y, 2048
-    )
+        train_loader, test_loader = create_data_loaders_from_arrays(
+            train_X, train_y, test_X, test_y, 2048
+        )
 
-    # Train fine-tuned model
-    logreg.train()
-    for epoch in range(args.num_epochs):
-        metrics = defaultdict(list)
-        for step, (h, y) in enumerate(train_loader):
-            h = h.to(device)
-            y = y.to(device)
+        # Train fine-tuned model
+        logreg.train()
+        for epoch in range(args.num_epochs):
+            metrics = defaultdict(list)
+            for step, (h, y) in enumerate(train_loader):
+                h = h.to(device)
+                y = y.to(device)
 
-            outputs = logreg(h)
+                outputs = logreg(h)
 
-            loss = criterion(outputs, y)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+                loss = criterion(outputs, y)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
-            # calculate accuracy and save metrics
-            accuracy = (outputs.argmax(1) == y).sum().item() / y.size(0)
-            metrics["Loss/train"].append(loss.item())
-            metrics["Accuracy/train"].append(accuracy)
+                # calculate accuracy and save metrics
+                accuracy = (outputs.argmax(1) == y).sum().item() / y.size(0)
+                metrics["Loss/train"].append(loss.item())
+                metrics["Accuracy/train"].append(accuracy)
 
-        print(f"Epoch [{epoch}/{args.num_epochs}]: " + "\t".join(
-            [f"{k}: {np.array(v).mean()}" for k, v in metrics.items()]))
+            print(f"Epoch [{epoch}/{args.num_epochs}]: " + "\t".join(
+                [f"{k}: {np.array(v).mean()}" for k, v in metrics.items()]))
 
-        if epoch % 100 == 0:
-            print("======epoch {}======".format(epoch))
-            test_result(test_loader, logreg, device, args.model_path)
-    test_result(test_loader, logreg, device, args.model_path)
+            if epoch % 100 == 0:
+                print("======epoch {}======".format(epoch))
+                test_result(test_loader, logreg, device, args.model_path)
+        test_result(test_loader, logreg, device, args.model_path)

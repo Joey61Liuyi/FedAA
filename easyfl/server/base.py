@@ -400,7 +400,7 @@ class BaseServer(object):
                     client._local_model.eval()
                     feature = client._local_model.online_encoder(image)
                     feature_ensemble.append(feature.detach().view(-1).unsqueeze(0))
-                feature_ensemble = torch.cat(feature_ensemble, dim=1)
+                feature_ensemble = torch.cat(feature_ensemble, dim=  0)
                 feature_ensemble = torch.var(feature_ensemble, dim = 0)
                 feature_num += feature_ensemble.numel()
                 var_sum += feature_ensemble.sum().item()

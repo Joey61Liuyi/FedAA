@@ -24,10 +24,10 @@ def run():
     }
     MD = False
     # whether you use individual model without aggregation
-    semantic_align = False
+    semantic_align = True
     fed_para = False
     semantic_method = 'QR'
-    aggregation_method = 'avg'
+    aggregation_method = 'semantic'
 
     if fed_ema:
         personalized = False

@@ -114,6 +114,10 @@ def get_encoder_network(model, encoder_network, num_classes=10, projection_size=
         resnet = ResNet50(num_classes=num_classes)
     elif encoder_network == RESNET34:
         resnet = ResNet34(num_classes=num_classes)
+    elif encoder_network == 'vgg9':
+        resnet = VGG9()
+    elif encoder_network == 'alexnet':
+        resnet = AlexNet()
     else:
         raise NotImplementedError
 
