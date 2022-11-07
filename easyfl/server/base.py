@@ -367,7 +367,7 @@ class BaseServer(object):
             # Update client config before training
             self.conf.client.task_id = self.conf.task_id
             self.conf.client.round_id = self._current_round
-            if hasattr(self, 'b_dict'):
+            if hasattr(self, 'b_dict') and self.conf.client.round_id > 5:
                 client.b_dict = self.b_dict
 
             if self.conf['personalized'] and self.conf.client.round_id == 0:
@@ -400,14 +400,18 @@ class BaseServer(object):
                     client._local_model.eval()
                     feature = client._local_model.online_encoder(image)
                     feature_ensemble.append(feature.detach().view(-1).unsqueeze(0))
-                feature_ensemble = torch.cat(feature_ensemble, dim=  0)
-                feature_ensemble = torch.var(feature_ensemble, dim = 0)
-                feature_num += feature_ensemble.numel()
-                var_sum += feature_ensemble.sum().item()
+                # feature_ensemble = torch.cat(feature_ensemble, dim=  0)
+                # feature_ensemble = torch.var(feature_ensemble, dim = 0)
+                # feature_num += feature_ensemble.numel()
+                # var_sum += feature_ensemble.sum().item()
+                loss_func = torch.nn.MSELoss()
+                loss = loss_func(feature_ensemble[0], feature_ensemble[1])
+                var_sum += loss.item()*len(image)
+                feature_num+=len(image)
             avg_var = var_sum/feature_num
             info_dict = {
                 'round': self.conf.client.round_id,
-                'feature_var': avg_var
+                'feature_dis': avg_var
             }
             wandb.log(info_dict)
 

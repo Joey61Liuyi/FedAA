@@ -53,8 +53,13 @@ class AlexNet(nn.Module):
             nn.MaxPool2d(kernel_size=2,
                          stride=2),
         )
-        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
-        self.feature_dim = 256 * 6 * 6
+        self.avgpool = nn.Sequential(
+            nn.AdaptiveAvgPool2d((6, 6)),
+            nn.Dropout(),
+            nn.Linear(256 * 6 * 6, 512),
+            nn.ReLU(inplace=True),
+        )
+        self.feature_dim = 512
         self.fc = nn.Sequential(
             nn.Dropout(),
             nn.Linear(256 * 6 * 6, 4096),

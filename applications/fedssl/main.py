@@ -13,21 +13,22 @@ import wandb
 def run():
     dataset = 'cifar10'
     user_num = 5
-    fed_ema = False
-    personalized = True
+    fed_ema = True
+    personalized = False
     heterogeneous_network = {
         'f0000000': 'alexnet',
-        'f0000001': 'resnet18',
-        'f0000002': 'vgg9',
-        'f0000003': 'resnet34',
-        'f0000004': 'alexnet',
+        'f0000001': 'vgg9',
+        # 'f0000002': 'resnet18',
+        # 'f0000003': 'resnet18',
+        # 'f0000004': 'resnet18',
     }
+    lamda = 0.001
     MD = False
     # whether you use individual model without aggregation
-    semantic_align = True
+    semantic_align = False
     fed_para = False
     semantic_method = 'QR'
-    aggregation_method = 'semantic'
+    aggregation_method = 'avg'
 
     if fed_ema:
         personalized = False
@@ -176,15 +177,14 @@ def run():
             "auto_scaler": args.auto_scaler,
             "auto_scaler_target": args.auto_scaler_target,
             "random_selection": args.random_selection,
-
             "encoder_weight": args.encoder_weight,
             "predictor_weight": args.predictor_weight,
-
             "momentum_update": momentum_update,
             'personalized': personalized,
             'semantic_align': semantic_align,
             'semantic_method': semantic_method,
             'aggregation_method': aggregation_method,
+            'lamda': lamda,
             'MD': MD
         },
         'device': 'cuda',
@@ -198,7 +198,7 @@ def run():
         'fed_para': fed_para,
         'heterogeneous_network': heterogeneous_network,
         'MD': MD,
-        'test_dis': True
+        'test_dis': False
     }
 
     if args.gpu > 1:

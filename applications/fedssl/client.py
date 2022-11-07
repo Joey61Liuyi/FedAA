@@ -259,7 +259,7 @@ class FedSSLClient(BaseClient):
                                     feature_restore = recreate_feature(features, self.b_dict[one])
                                     loss_ours += kl_loss(features, feature_restore.detach())/len(self.b_dict)
 
-                        loss += loss_ours
+                        loss += conf['lamda'] * loss_ours
                 loss.backward()
                 torch.nn.utils.clip_grad_norm(self.model.parameters(), max_norm=1, norm_type=2)
                 optimizer.step()

@@ -130,15 +130,14 @@ if __name__ == "__main__":
 
     # get data loaders
 
-
     model_name = ['f0000000.pth','f0000001.pth', 'f0000002.pth', 'f0000003.pth', 'f0000004.pth']
 
     model_dict ={
-        './saved_models/byol_local_/byol_local__global_model_r_99_f0000000.pth': 'alexnet',
-        './saved_models/byol_local_/byol_local__global_model_r_99_f0000001.pth': 'resnet18',
-        './saved_models/byol_local_/byol_local__global_model_r_99_f0000002.pth': 'vgg9',
-        './saved_models/byol_local_/byol_local__global_model_r_99_f0000003.pth': 'resnet34',
-        './saved_models/byol_local_/byol_local__global_model_r_99_f0000004.pth': 'alexnet',
+        # './saved_models/byol_local_/byol_local__global_model_r_99_f0000000.pth': 'resnet18',
+        './saved_models/byol_local_/byol_local__global_model_r_99_f0000001.pth': 'resnet34',
+        # './saved_models/byol_local_QR_semantic/byol_local_QR_semantic_global_model_r_29_f0000002.pth': 'vgg9',
+        # './saved_models/byol_local_QR_semantic/byol_local_QR_semantic_global_model_r_29_f0000003.pth': 'resnet34',
+        # './saved_models/byol_local_QR_semantic/byol_local_QR_semantic_global_model_r_29_f0000004.pth': 'alexnet',
     }
 
     models = []

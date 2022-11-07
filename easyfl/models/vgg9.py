@@ -30,12 +30,16 @@ class Model(BaseModel):
         super(Model, self).__init__()
         self.features = features
 
-
-        self.feature_dim = 4096
-
-        self.fc = nn.Sequential(
+        self.space_transformer = nn.Sequential(
             nn.Dropout(p=0.1),
             nn.Linear(4096, 512),
+            nn.ReLU(inplace=True),
+        )
+
+        self.feature_dim = 512
+        self.fc = nn.Sequential(
+            nn.Dropout(p=0.1),
+            nn.Linear(512, 512),
             nn.ReLU(True),
             nn.Dropout(p=0.1),
             nn.Linear(512, 512),
@@ -47,6 +51,7 @@ class Model(BaseModel):
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), -1)
+        x = self.space_transformer(x)
         x = self.fc(x)
         return x
 
