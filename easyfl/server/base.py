@@ -218,7 +218,6 @@ class BaseServer(object):
     def test(self):
         """Testing process of federated learning."""
         self.print_("--- start testing ---")
-
         test_begin_time = time.time()
 
         test_results = {metric.TEST_ACCURACY: 0, metric.TEST_LOSS: 0, metric.TEST_TIME: 0}

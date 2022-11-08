@@ -18,7 +18,7 @@ from easyfl.tracking import metric
 from knn_monitor import knn_monitor
 
 logger = logging.getLogger(__name__)
-
+import wandb
 
 class FedSSLServer(BaseServer):
     def __init__(self, conf, test_data=None, val_data=None, is_remote=False, local_port=22999):
@@ -91,21 +91,51 @@ class FedSSLServer(BaseServer):
         return model_
 
     def test_in_server(self, device=CPU):
-        testing_model = self._get_testing_model()
-        testing_model.eval()
-        testing_model.to(device)
 
-        self._get_test_data()
 
-        with torch.no_grad():
-            accuracy = knn_monitor(testing_model, self.train_loader, self.test_loader)
 
-        test_results = {
-            metric.TEST_ACCURACY: float(accuracy),
-            metric.TEST_LOSS: 0,
-        }
-        return test_results
+        if self.conf['personalized'] and self._current_round > 0:
+            acc_dict = {}
+            for client in self.grouped_clients:
+                testing_model = client._local_model.online_encoder
+                # testing_model = self._get_testing_model()
+                testing_model.eval()
+                testing_model.to(device)
 
+                self._get_test_data()
+
+                with torch.no_grad():
+                    accuracy = knn_monitor(testing_model, self.train_loader, self.test_loader)
+                acc_dict[client.cid+'_acc'] = accuracy
+
+                print(client.cid+ '  :  '+ str(accuracy))
+
+            # print(acc_dict)
+            accuracy = sum(list(acc_dict.values()))/len(list(acc_dict.values()))
+            acc_dict['acc_avg'] = accuracy
+            acc_dict['round'] = self._current_round
+            wandb.log(acc_dict)
+
+            test_results = {
+                metric.TEST_ACCURACY: float(accuracy),
+                metric.TEST_LOSS: 0,
+            }
+            return test_results
+
+        else:
+            testing_model = self._get_testing_model()
+            testing_model.eval()
+            testing_model.to(device)
+
+            self._get_test_data()
+
+            with torch.no_grad():
+                accuracy = knn_monitor(testing_model, self.train_loader, self.test_loader)
+            test_results = {
+                metric.TEST_ACCURACY: float(accuracy),
+                metric.TEST_LOSS: 0,
+            }
+            return test_results
     def _get_test_data(self):
         transformation = self._load_transform()
         if self.train_loader is None or self.test_loader is None:

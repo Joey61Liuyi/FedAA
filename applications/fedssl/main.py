@@ -27,13 +27,13 @@ def run():
     fed_ema = False
     personalized = True
     heterogeneous_network = {
-        'f0000000': 'alexnet',
+        'f0000000': 'resnet18',
         'f0000001': 'vgg9',
         # 'f0000002': 'resnet18',
         # 'f0000003': 'resnet18',
         # 'f0000004': 'resnet18',
     }
-    lamda = 0.1
+    lamda = 0.01
     MD = False
     # whether you use individual model without aggregation
     semantic_align = True
@@ -83,8 +83,8 @@ def run():
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
     parser.add_argument('--batch_size', default=500, type=int)
-    parser.add_argument('--local_epoch', default=1, type=int)
-    parser.add_argument('--rounds', default=20, type=int)
+    parser.add_argument('--local_epoch', default=5, type=int)
+    parser.add_argument('--rounds', default=50, type=int)
     parser.add_argument('--num_of_clients', default=user_num, type=int)
     parser.add_argument('--clients_per_round', default=user_num, type=int)
     parser.add_argument('--class_per_client', default=10, type=int,
@@ -106,7 +106,7 @@ def run():
     parser.add_argument('--predictor_weight', type=float, default=0,
                         help='for ema predictor update, apply on local predictor')
 
-    parser.add_argument('--test_every', default=100, type=int, help='test every x rounds')
+    parser.add_argument('--test_every', default=2, type=int, help='test every x rounds')
     parser.add_argument('--save_model_every', default=10, type=int, help='save model every x rounds')
     parser.add_argument('--save_predictor', action='store_true', help='whether save predictor')
 
