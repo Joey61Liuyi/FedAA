@@ -8,13 +8,24 @@ from easyfl.distributed import slurm
 from model import get_model, BYOLNoEMA, BYOL, BYOLNoSG, BYOLNoEMA_NoSG
 from server import FedSSLServer
 import wandb
+import torch
+import numpy as np
+import random
+
+def set_random_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
 
 
 def run():
+    set_random_seed(0)
     dataset = 'cifar10'
-    user_num = 5
-    fed_ema = True
-    personalized = False
+    user_num = 2
+    fed_ema = False
+    personalized = True
     heterogeneous_network = {
         'f0000000': 'alexnet',
         'f0000001': 'vgg9',
@@ -22,10 +33,10 @@ def run():
         # 'f0000003': 'resnet18',
         # 'f0000004': 'resnet18',
     }
-    lamda = 0.001
+    lamda = 0.1
     MD = False
     # whether you use individual model without aggregation
-    semantic_align = False
+    semantic_align = True
     fed_para = False
     semantic_method = 'QR'
     aggregation_method = 'avg'
@@ -55,12 +66,12 @@ def run():
     if fed_para:
         name3 = 'fed_para'
 
-    name = name0+name1+name3
+    name = name0+name1+name3+'_'+str(lamda)
     if MD:
         name += 'MD'
     # name += '_Non_IID'
     task_id = name
-    wandb.init(project='EasyFL_{}'.format(dataset), name=name, entity='peilab')
+    wandb.init(project='Swift_EasyFL_{}'.format(dataset), name=name, entity='peilab')
     parser = argparse.ArgumentParser(description='FedSSL')
     parser.add_argument("--task_id", type=str, default=task_id)
     parser.add_argument("--dataset", type=str, default=dataset, help='options: cifar10, cifar100')
@@ -72,8 +83,8 @@ def run():
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
     parser.add_argument('--batch_size', default=500, type=int)
-    parser.add_argument('--local_epoch', default=5, type=int)
-    parser.add_argument('--rounds', default=100, type=int)
+    parser.add_argument('--local_epoch', default=1, type=int)
+    parser.add_argument('--rounds', default=20, type=int)
     parser.add_argument('--num_of_clients', default=user_num, type=int)
     parser.add_argument('--clients_per_round', default=user_num, type=int)
     parser.add_argument('--class_per_client', default=10, type=int,
@@ -198,7 +209,7 @@ def run():
         'fed_para': fed_para,
         'heterogeneous_network': heterogeneous_network,
         'MD': MD,
-        'test_dis': False
+        'test_dis': True
     }
 
     if args.gpu > 1:
