@@ -255,11 +255,11 @@ class FedSSLClient(BaseClient):
 
                         elif conf['aggregation_method'] == 'semantic':
                             for one in self.b_dict:
-                                if one != self.cid:
+                                if one != self.cid and b.trace() < self.b_dict[one].trace():
                                     feature_restore = recreate_feature(features, self.b_dict[one])
                                     loss_ours += kl_loss(features, feature_restore.detach())/len(self.b_dict)
 
-                        loss += loss_ours
+                        loss += conf['lambda']*loss_ours
                 loss.backward()
                 torch.nn.utils.clip_grad_norm(self.model.parameters(), max_norm=1, norm_type=2)
                 optimizer.step()

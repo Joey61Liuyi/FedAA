@@ -28,6 +28,7 @@ def run():
     fed_para = False
     semantic_method = 'QR'
     aggregation_method = 'semantic'
+    lamda = 0.001
 
     if fed_ema:
         personalized = False
@@ -198,7 +199,8 @@ def run():
         'fed_para': fed_para,
         'heterogeneous_network': heterogeneous_network,
         'MD': MD,
-        'test_dis': True
+        'test_dis': True,
+        'lambda': lamda
     }
 
     if args.gpu > 1:
