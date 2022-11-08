@@ -28,18 +28,18 @@ def run():
     personalized = True
     heterogeneous_network = {
         'f0000000': 'resnet18',
-        'f0000001': 'vgg9',
+        'f0000001': 'resnet34',
         # 'f0000002': 'resnet18',
         # 'f0000003': 'resnet18',
         # 'f0000004': 'resnet18',
     }
-    lamda = 0.01
+    lamda = 0.001
     MD = False
     # whether you use individual model without aggregation
     semantic_align = True
     fed_para = False
     semantic_method = 'QR'
-    aggregation_method = 'avg'
+    aggregation_method = 'semantic'
 
     if fed_ema:
         personalized = False
@@ -83,7 +83,7 @@ def run():
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
     parser.add_argument('--batch_size', default=500, type=int)
-    parser.add_argument('--local_epoch', default=5, type=int)
+    parser.add_argument('--local_epoch', default=1, type=int)
     parser.add_argument('--rounds', default=50, type=int)
     parser.add_argument('--num_of_clients', default=user_num, type=int)
     parser.add_argument('--clients_per_round', default=user_num, type=int)

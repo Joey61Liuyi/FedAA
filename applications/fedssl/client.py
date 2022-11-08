@@ -255,7 +255,7 @@ class FedSSLClient(BaseClient):
 
                         elif conf['aggregation_method'] == 'semantic':
                             for one in self.b_dict:
-                                if one != self.cid:
+                                if one != self.cid and b.trace() < self.b_dict[one].trace():
                                     feature_restore = recreate_feature(features, self.b_dict[one])
                                     loss_ours += kl_loss(features, feature_restore.detach())/len(self.b_dict)
 
