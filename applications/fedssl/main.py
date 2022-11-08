@@ -14,13 +14,14 @@ def run():
     dataset = 'cifar10'
     user_num = 5
     fed_ema = False
-    personalized = True
+    fed_u = False
+    personalized = False
     heterogeneous_network = {
-        'f0000000': 'alexnet',
+        'f0000000': 'resnet18',
         'f0000001': 'resnet18',
-        'f0000002': 'vgg9',
-        'f0000003': 'resnet34',
-        'f0000004': 'alexnet',
+        'f0000002': 'resnet18',
+        'f0000003': 'resnet18',
+        'f0000004': 'resnet18',
     }
     MD = False
     # whether you use individual model without aggregation
@@ -36,6 +37,14 @@ def run():
         name0 = 'fedema'
         update_encoder = 'dynamic_ema_online'
         update_predictor = 'dynamic_dapu'
+
+    elif fed_u:
+        personalized = False
+        model = 'byol'
+        name0 = 'fedu'
+        update_encoder = 'online'
+        update_predictor = 'dapu'
+
     else:
         model = 'byol'
         update_encoder = 'online'
