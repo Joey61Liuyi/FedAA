@@ -55,7 +55,7 @@ def run():
     if fed_para:
         name3 = 'fed_para'
 
-    name = name0+name1+name3
+    name = name0+name1+name3+'_'+str(lamda)
     if MD:
         name += 'MD'
     # name += '_Non_IID'
