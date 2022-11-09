@@ -16,7 +16,12 @@ def set_random_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    # torch.manual_seed
     torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.determinstic =True
+    torch.backends.cudnn.benchmark = False
+
 
 
 
@@ -33,13 +38,13 @@ def run():
         # 'f0000003': 'resnet18',
         # 'f0000004': 'resnet18',
     }
-    lamda = 0.001
+    lamda = 1
     MD = False
     # whether you use individual model without aggregation
     semantic_align = True
     fed_para = False
     semantic_method = 'QR'
-    aggregation_method = 'semantic'
+    aggregation_method = 'avg'
 
     if fed_ema:
         personalized = False
@@ -71,7 +76,7 @@ def run():
         name += 'MD'
     # name += '_Non_IID'
     task_id = name
-    wandb.init(project='Swift_EasyFL_{}'.format(dataset), name=name, entity='peilab')
+    wandb.init(project='11.9.Swift_EasyFL_{}'.format(dataset), name=name, entity='peilab')
     parser = argparse.ArgumentParser(description='FedSSL')
     parser.add_argument("--task_id", type=str, default=task_id)
     parser.add_argument("--dataset", type=str, default=dataset, help='options: cifar10, cifar100')
@@ -83,8 +88,8 @@ def run():
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
     parser.add_argument('--batch_size', default=500, type=int)
-    parser.add_argument('--local_epoch', default=1, type=int)
-    parser.add_argument('--rounds', default=50, type=int)
+    parser.add_argument('--local_epoch', default=2, type=int)
+    parser.add_argument('--rounds', default=100, type=int)
     parser.add_argument('--num_of_clients', default=user_num, type=int)
     parser.add_argument('--clients_per_round', default=user_num, type=int)
     parser.add_argument('--class_per_client', default=10, type=int,

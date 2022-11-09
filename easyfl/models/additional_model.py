@@ -54,12 +54,7 @@ class AlexNet(nn.Module):
                          stride=2),
         )
         self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
-        self.space_transformer = nn.Sequential(
-            nn.Dropout(),
-            nn.Linear(256 * 6 * 6, 512),
-            nn.ReLU(inplace=True),
-        )
-        self.feature_dim = 512
+        self.feature_dim = 9216
         self.fc = nn.Sequential(
             nn.Dropout(),
             nn.Linear(256 * 6 * 6, 4096),
@@ -75,7 +70,6 @@ class AlexNet(nn.Module):
         x = self.features(x)
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
-        x = self.space_transformer(x)
         x = self.fc(x)
         return x
 

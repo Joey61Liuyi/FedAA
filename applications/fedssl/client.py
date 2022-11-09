@@ -248,17 +248,20 @@ class FedSSLClient(BaseClient):
                     if hasattr(self, 'b_dict'):
                         loss_ours = 0
                         if conf['aggregation_method'] == 'avg':
-                            b_list = list(self.b_dict.values())
-                            b_avg = sum(b_list)/len(b_list)
-                            feature_restore = torch.matmul(w, b_avg)
-                            loss_ours += kl_loss(features, feature_restore.detach())
+                            for one in self.b_dict:
+                                if one!=self.cid:
+                                    b_avg = self.b_dict[one]
+                                    # b_list = list(self.b_dict.values())
+                                    # b_avg = sum(b_list)/len(b_list)
+                                    if b.trace() < self.b_dict[one].trace():
+                                        feature_restore = torch.matmul(w, b_avg)
+                                        loss_ours += kl_loss(features, feature_restore.detach())
 
                         elif conf['aggregation_method'] == 'semantic':
                             for one in self.b_dict:
                                 if one != self.cid and b.trace() < self.b_dict[one].trace():
                                     feature_restore = recreate_feature(features, self.b_dict[one])
-                                    loss_ours += kl_loss(features, feature_restore.detach())/len(self.b_dict)
-
+                                    loss_ours += kl_loss(features, feature_restore.detach())
                         loss += conf['lamda'] * loss_ours
                 loss.backward()
                 torch.nn.utils.clip_grad_norm(self.model.parameters(), max_norm=1, norm_type=2)

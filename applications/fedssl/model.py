@@ -7,7 +7,7 @@ from torch import nn
 
 from easyfl.models.model import BaseModel
 from easyfl.models.resnet import ResNet18, ResNet50, ResNet34, ResNet101
-from easyfl.models.additional_model import AlexNet
+from easyfl.models.additional_model import AlexNet, MobileNet
 from easyfl.models.vgg9 import VGG9
 
 SimSiam = "simsiam"
@@ -92,7 +92,8 @@ def get_model(model, encoder_network, predictor_network=TwoLayer, fed_para=False
             net = VGG9()
         elif encoder_network == 'alexnet':
             net = AlexNet()
-
+        elif encoder_network == 'mobilenet':
+            net = MobileNet()
         return BYOLModel(net=net, stop_gradient=stop_gradient, has_predictor=has_predictor,
                          predictor_network=predictor_network)
     elif model == SimCLR:
