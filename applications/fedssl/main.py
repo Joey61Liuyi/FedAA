@@ -22,29 +22,27 @@ def set_random_seed(seed):
     torch.backends.cudnn.determinstic =True
     torch.backends.cudnn.benchmark = False
 
-
-
-
 def run():
     set_random_seed(0)
     dataset = 'cifar10'
-    user_num = 2
+    user_num = 4
     fed_ema = False
     personalized = True
     heterogeneous_network = {
         'f0000000': 'resnet18',
         'f0000001': 'resnet34',
-        # 'f0000002': 'resnet18',
-        # 'f0000003': 'resnet18',
-        # 'f0000004': 'resnet18',
+        'f0000002': 'vgg9',
+        'f0000003': 'alexnet',
+        # 'f0000004': 'vgg9',
     }
     lamda = 1
     MD = False
     # whether you use individual model without aggregation
     semantic_align = True
     fed_para = False
+    track_loss = True
     semantic_method = 'QR'
-    aggregation_method = 'avg'
+    aggregation_method = 'semantic'
 
     if fed_ema:
         personalized = False
@@ -88,8 +86,8 @@ def run():
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
     parser.add_argument('--batch_size', default=500, type=int)
-    parser.add_argument('--local_epoch', default=2, type=int)
-    parser.add_argument('--rounds', default=100, type=int)
+    parser.add_argument('--local_epoch', default=1, type=int)
+    parser.add_argument('--rounds', default=200, type=int)
     parser.add_argument('--num_of_clients', default=user_num, type=int)
     parser.add_argument('--clients_per_round', default=user_num, type=int)
     parser.add_argument('--class_per_client', default=10, type=int,
@@ -111,8 +109,8 @@ def run():
     parser.add_argument('--predictor_weight', type=float, default=0,
                         help='for ema predictor update, apply on local predictor')
 
-    parser.add_argument('--test_every', default=2, type=int, help='test every x rounds')
-    parser.add_argument('--save_model_every', default=10, type=int, help='save model every x rounds')
+    parser.add_argument('--test_every', default=10, type=int, help='test every x rounds')
+    parser.add_argument('--save_model_every', default=100, type=int, help='save model every x rounds')
     parser.add_argument('--save_predictor', action='store_true', help='whether save predictor')
 
     parser.add_argument('--semi_supervised', default=0, help='whether to train with semi-supervised data')
@@ -201,6 +199,7 @@ def run():
             'semantic_method': semantic_method,
             'aggregation_method': aggregation_method,
             'lamda': lamda,
+            'track_loss': track_loss,
             'MD': MD
         },
         'device': 'cuda',
@@ -214,7 +213,8 @@ def run():
         'fed_para': fed_para,
         'heterogeneous_network': heterogeneous_network,
         'MD': MD,
-        'test_dis': True
+        'track_loss': track_loss,
+        'test_dis': False
     }
 
     if args.gpu > 1:
