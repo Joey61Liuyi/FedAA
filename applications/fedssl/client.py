@@ -214,6 +214,13 @@ class FedSSLClient(BaseClient):
         self.train_loss = []
         self.model.to(device)
         old_model = copy.deepcopy(nn.Sequential(*list(self.model.children())[:-1])).cpu()
+
+        if hasattr(self, 'b_dict'):
+            name_list = list(self.b_dict.keys())
+            distance_dict = {}
+            for one in name_list:
+                distance_dict[one] = []
+
         for i in range(conf.local_epoch):
             batch_loss = []
             for (batched_x1, batched_x2), _ in self.train_loader:
@@ -255,9 +262,16 @@ class FedSSLClient(BaseClient):
 
                         elif conf['aggregation_method'] == 'semantic':
                             for one in self.b_dict:
-                                if one != self.cid and b.trace() < self.b_dict[one].trace():
+                                if conf['track_loss']:
                                     feature_restore = recreate_feature(features, self.b_dict[one])
-                                    loss_ours += kl_loss(features, feature_restore.detach())/len(self.b_dict)
+                                    distance = kl_loss(features, feature_restore.detach())
+                                    distance_dict[one].append(distance.item())
+                                    if one != self.cid and b.trace() < self.b_dict[one].trace():
+                                        loss_ours += distance
+                                else:
+                                    if one != self.cid and b.trace() < self.b_dict[one].trace():
+                                        feature_restore = recreate_feature(features, self.b_dict[one])
+                                        loss_ours += kl_loss(features, feature_restore.detach())
 
                         loss += conf['lambda']*loss_ours
                 loss.backward()
@@ -270,6 +284,12 @@ class FedSSLClient(BaseClient):
 
             current_epoch_loss = sum(batch_loss) / len(batch_loss)
             self.train_loss.append(float(current_epoch_loss))
+
+        if conf['track_loss'] and hasattr(self, 'b_dict'):
+            for one in distance_dict:
+                distance_dict[one] = sum(distance_dict[one])/len(distance_dict[one])
+            self.distance_dict = distance_dict
+
         self.train_time = time.time() - start_time
         self.b /= self.batch
 

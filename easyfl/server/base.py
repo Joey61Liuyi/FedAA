@@ -5,7 +5,7 @@ import logging
 import os
 import threading
 import time
-
+import pickle
 import numpy as np
 import torch
 import torch.distributed as dist
@@ -139,6 +139,7 @@ class BaseServer(object):
                 Clients are actually client grpc addresses when in remote training.
         """
         # Setup
+        self.heat_map = {}
         self._start_time = time.time()
         self._reset()
         self.set_model(model)
@@ -179,6 +180,8 @@ class BaseServer(object):
 
         self.print_("Accuracies: {}".format(rounding(self._accuracies, 4)))
         self.print_("Cumulative training time: {}".format(rounding(self._cumulative_times, 2)))
+        with open(self.conf['task_id']+'.pkl', 'wb') as f:
+            pickle.dump(self.heat_map, f)
 
     def stop(self):
         """Set the flag to indicate training should stop."""
@@ -363,12 +366,17 @@ class BaseServer(object):
         if self.conf['semantic_align']:
             b_dict = {}
 
+        distance_matrix = []
+
         for client in self.grouped_clients:
             # Update client config before training
             self.conf.client.task_id = self.conf.task_id
             self.conf.client.round_id = self._current_round
             if hasattr(self, 'b_dict'):
                 client.b_dict = self.b_dict
+
+            if hasattr(client, 'distance_dict'):
+                distance_matrix.append(list(client.distance_dict.values()))
 
             if self.conf['personalized'] and self.conf.client.round_id == 0:
                 encoder_network = self.conf['heterogeneous_network'][client.cid]
@@ -387,7 +395,7 @@ class BaseServer(object):
             uploaded_weights[client.cid] = uploaded_content.data_size
             uploaded_metrics.append(metric.ClientMetric.from_proto(uploaded_content.metric))
 
-
+        self.heat_map[self._current_round] = distance_matrix
 
         if self.conf['test_dis']:
             feature_num = 0
