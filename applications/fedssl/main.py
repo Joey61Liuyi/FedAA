@@ -195,7 +195,8 @@ def run():
             'semantic_align': semantic_align,
             'semantic_method': semantic_method,
             'aggregation_method': aggregation_method,
-            'MD': MD
+            'MD': MD,
+            'lambda': lamda
         },
         'device': 'cuda',
         'resource_heterogeneous': {"grouping_strategy": ""},
@@ -208,8 +209,8 @@ def run():
         'fed_para': fed_para,
         'heterogeneous_network': heterogeneous_network,
         'MD': MD,
-        'test_dis': True,
-        'lambda': lamda
+        'test_dis': False,
+
     }
 
     if args.gpu > 1:
