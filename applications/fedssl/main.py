@@ -10,21 +10,20 @@ from server import FedSSLServer
 import wandb
 
 def run():
-    dataset = 'cifar100'
-    user_num = 5
+    dataset = 'cifar10'
+    user_num = 4
     fed_ema = True
     fed_u = False
     personalized = False
     heterogeneous_network = {
         'f0000000': 'resnet18',
-        'f0000001': 'resnet18',
-        'f0000002': 'resnet18',
-        'f0000003': 'resnet18',
-        'f0000004': 'resnet18',
+        'f0000001': 'vgg9',
+        'f0000002': 'alexnet',
+        'f0000003': 'resnet34',
     }
     MD = False
     # whether you use individual model without aggregation
-    semantic_align = True
+    semantic_align = False
     fed_para = False
     semantic_method = 'QR'
     aggregation_method = 'semantic'
@@ -69,7 +68,7 @@ def run():
         name += 'MD'
     # name += '_Non_IID'
     task_id = name
-    wandb.init(project='EasyFL_{}'.format(dataset), name=name, entity='peilab')
+    wandb.init(project='Hetero_EasyFL_{}'.format(dataset), name=name, entity='peilab')
     parser = argparse.ArgumentParser(description='FedSSL')
     parser.add_argument("--task_id", type=str, default=task_id)
     parser.add_argument("--dataset", type=str, default=dataset, help='options: cifar10, cifar100')
