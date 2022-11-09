@@ -9,11 +9,10 @@ from model import get_model, BYOLNoEMA, BYOL, BYOLNoSG, BYOLNoEMA_NoSG
 from server import FedSSLServer
 import wandb
 
-
 def run():
-    dataset = 'cifar10'
+    dataset = 'cifar100'
     user_num = 5
-    fed_ema = False
+    fed_ema = True
     fed_u = False
     personalized = False
     heterogeneous_network = {
@@ -30,6 +29,7 @@ def run():
     semantic_method = 'QR'
     aggregation_method = 'semantic'
     lamda = 0.001
+    track_loss = True
 
     if fed_ema:
         personalized = False
@@ -64,7 +64,7 @@ def run():
     if fed_para:
         name3 = 'fed_para'
 
-    name = name0+name1+name3+'_'+str(lamda)
+    name = dataset + '_'+ name0+name1+name3+'_'+str(lamda)
     if MD:
         name += 'MD'
     # name += '_Non_IID'
@@ -80,7 +80,7 @@ def run():
                         help='network architecture of encoder, options: resnet18, resnet50')
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
-    parser.add_argument('--batch_size', default=500, type=int)
+    parser.add_argument('--batch_size', default=400, type=int)
     parser.add_argument('--local_epoch', default=5, type=int)
     parser.add_argument('--rounds', default=100, type=int)
     parser.add_argument('--num_of_clients', default=user_num, type=int)
@@ -195,7 +195,9 @@ def run():
             'semantic_align': semantic_align,
             'semantic_method': semantic_method,
             'aggregation_method': aggregation_method,
-            'MD': MD
+            'track_loss': track_loss,
+            'MD': MD,
+            'lambda': lamda
         },
         'device': 'cuda',
         'resource_heterogeneous': {"grouping_strategy": ""},
@@ -207,9 +209,9 @@ def run():
         'predictor_network': args.predictor_network,
         'fed_para': fed_para,
         'heterogeneous_network': heterogeneous_network,
+        'track_loss': track_loss,
         'MD': MD,
-        'test_dis': True,
-        'lambda': lamda
+        'test_dis': False,
     }
 
     if args.gpu > 1:
