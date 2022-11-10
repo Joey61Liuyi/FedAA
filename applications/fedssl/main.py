@@ -8,9 +8,10 @@ from easyfl.distributed import slurm
 from model import get_model, BYOLNoEMA, BYOL, BYOLNoSG, BYOLNoEMA_NoSG
 from server import FedSSLServer
 import wandb
+import torch
 
 def run():
-    dataset = 'cifar100'
+    dataset = 'cifar10'
     user_num = 5
     fed_ema = True
     fed_u = False
@@ -27,9 +28,11 @@ def run():
     semantic_align = True
     fed_para = False
     semantic_method = 'QR'
+    resume_round = 39
+    resume_path = './saved_models/cifar10_fedema_weights_agg_QR_semantic_0.01/cifar10_fedema_weights_agg_QR_semantic_0.01_global_model_r_39.pth'
     aggregation_method = 'semantic'
-    lamda = 0.001
-    track_loss = True
+    lamda = 0.01
+    track_loss = False
 
     if fed_ema:
         personalized = False
@@ -80,9 +83,9 @@ def run():
                         help='network architecture of encoder, options: resnet18, resnet50')
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
-    parser.add_argument('--batch_size', default=400, type=int)
+    parser.add_argument('--batch_size', default=500, type=int)
     parser.add_argument('--local_epoch', default=5, type=int)
-    parser.add_argument('--rounds', default=100, type=int)
+    parser.add_argument('--rounds', default=101, type=int)
     parser.add_argument('--num_of_clients', default=user_num, type=int)
     parser.add_argument('--clients_per_round', default=user_num, type=int)
     parser.add_argument('--class_per_client', default=10, type=int,
@@ -212,6 +215,7 @@ def run():
         'track_loss': track_loss,
         'MD': MD,
         'test_dis': False,
+        'resume_round': resume_round
     }
 
     if args.gpu > 1:
@@ -236,6 +240,9 @@ def run():
         easyfl.register_dataset(train_data, test_data)
 
     model = get_model(args.model, args.encoder_network, args.predictor_network, fed_para)
+    if resume_path!=None:
+        ckpt = torch.load(resume_path)
+        model.online_encoder.load_state_dict(ckpt)
     model.to('cuda')
     easyfl.register_model(model)
     easyfl.register_client(FedSSLClient)

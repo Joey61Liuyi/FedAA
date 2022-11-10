@@ -155,6 +155,8 @@ class BaseServer(object):
             self.test()
             self.save_tracker()
 
+        self._current_round = self.conf['resume_round']
+
         while not self.should_stop():
             self._round_time = time.time()
 
