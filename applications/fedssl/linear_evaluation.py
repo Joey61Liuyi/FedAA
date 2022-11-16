@@ -1,21 +1,50 @@
 import argparse
 from collections import defaultdict
 
+import numpy
 import numpy as np
 import torch
 import torch.nn as nn
-
+# import matplotlib.pyplot as plt
 from easyfl.datasets.data import CIFAR100
 from eval_dataset import get_data_loaders
 from model import get_encoder_network
 import random
-
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 def set_random_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
+
+
+def tSNE(h, label, name):
+    color_dict = {'blue': 0, 'green': 1, 'yellow': 2, 'red': 3, 'black': 4, 'gray': 5, 'gold': 6, 'pink': 7,
+                  'purple': 8, 'orange': 9}
+    data = np.array(h)
+    target = np.array(label)
+    tsne = TSNE(n_components=2, n_iter=500)
+    data_tsne = tsne.fit_transform(data)
+    x, y = data_tsne[:, 0], data_tsne[:, 1]
+
+    fig = plt.figure(figsize=(5, 5))
+    ax = fig.add_subplot(111)
+    plt.xlim(-50, 50)
+    plt.ylim(-50, 50)
+    # current_axes = plt.axes()
+    # current_axes.xaxis.set_visible(False)
+    # current_axes.yaxis.set_visible(False)
+
+    color_target = [list(color_dict.keys())[list(color_dict.values()).index(c)] for c in target]
+    plt.scatter(x, y, c=color_target, s=10)
+    plt.xticks(fontsize=14, rotation=0)
+    plt.yticks(fontsize=14, rotation=0)
+    fig.tight_layout()
+    plt.savefig(name, dpi=1000)
+    plt.show()
 
 def inference(loader, model, device):
     feature_vector = []
@@ -46,13 +75,70 @@ def inference(loader, model, device):
         for step, (x, y) in enumerate(loader):
             x = x.to(device)
 
+
+
+
             # get encoding
+            print(x.shape)
+
+
             with torch.no_grad():
                 h = model(x)
 
             h = h.squeeze()
             h = h.detach()
 
+            tep = torch.randn(x.shape).to(device)
+            tep1 = torch.randn(h.shape)
+
+            h_tep = model(tep)
+            h_tep = h_tep.squeeze()
+            h_tep = h_tep.detach()
+            h_tep = torch.matmul(h_tep.t(), h_tep)
+            h_tep = h_tep.cpu().numpy()
+
+            # sns.heatmap(h_tep, linewidth = 0.5)
+            h_tep = numpy.clip(h_tep, 0, 1000)
+            im = plt.imshow(h_tep)
+            # fig, ax = plt.subplots()
+            # heatmap = ax.pcolor(h_tep, cmap=plt.cm.Blues)
+            plt.colorbar(im)
+            plt.savefig('random_input.png')
+            plt.show()
+            plt.close()
+
+            h = torch.matmul(h.t(), h)
+            h = h.cpu().numpy()
+            h_tep = numpy.clip(h, 0, 500)
+            im = plt.imshow(h)
+            # sns.heatmap(h.cpu().numpy(), linewidths=0.5)
+            # fig, ax = plt.subplots()
+            # heatmap = ax.pcolor(h.cpu().numpy(), cmap=plt.cm.Blues)
+            plt.colorbar(im)
+            plt.savefig('feature.png')
+            plt.show()
+            plt.close()
+
+            tep1 = torch.matmul(tep1.t(), tep1)
+
+
+            # fig, ax = plt.subplots()
+            # heatmap = ax.pcolor(tep1.numpy(), cmap=plt.cm.Blues)
+
+
+            tep1 = tep1.cpu().numpy()
+            tep1 = numpy.clip(tep1, 0, 500)
+            im = plt.imshow(tep1)
+
+            plt.colorbar(im)
+            plt.savefig('random.png')
+            plt.show()
+            plt.close()
+
+
+            # tep = torch.randn
+            # plt.imshow(tep.cpu().numpy())
+            print('pause')
             feature_vector.extend(h.cpu().detach().numpy())
             labels_vector.extend(y.numpy())
 
@@ -113,7 +199,7 @@ if __name__ == "__main__":
     set_random_seed(0)
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="cifar100", type=str)
-    parser.add_argument("--model_path", default='./saved_models/cifar100_fedema_weights_agg_/cifar100_fedema_weights_agg__global_model_r_99.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
+    parser.add_argument("--model_path", default='./lab/saved_models/cifar100_fedema_weights_agg_QR_semantic_0.01/cifar100_fedema_weights_agg_QR_semantic_0.01_global_model_r_99.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
     parser.add_argument('--model', default='byol', type=str, help='name of the network')
     parser.add_argument("--image_size", default=32, type=int, help="Image size")
     parser.add_argument("--learning_rate", default=3e-3, type=float, help="Initial learning rate.")
@@ -134,11 +220,10 @@ if __name__ == "__main__":
     model_name = ['f0000000.pth','f0000001.pth', 'f0000002.pth', 'f0000003.pth', 'f0000004.pth']
 
     model_dict ={
-        './saved_models/byol_local_/byol_local__global_model_r_99_f0000000.pth': 'alexnet',
-        './saved_models/byol_local_/byol_local__global_model_r_99_f0000001.pth': 'resnet18',
-        './saved_models/byol_local_/byol_local__global_model_r_99_f0000002.pth': 'vgg9',
-        './saved_models/byol_local_/byol_local__global_model_r_99_f0000003.pth': 'resnet34',
-        './saved_models/byol_local_/byol_local__global_model_r_99_f0000004.pth': 'alexnet',
+        './saved_models/cifar100_byol_local_QR_semantic_0.01/cifar100_byol_local_QR_semantic_0.01_global_model_r_99_f0000000.pth': 'resnet18',
+        './saved_models/cifar100_byol_local_QR_semantic_0.01/cifar100_byol_local_QR_semantic_0.01_global_model_r_99_f0000001.pth': 'vgg9',
+        './saved_models/cifar100_byol_local_QR_semantic_0.01/cifar100_byol_local_QR_semantic_0.01_global_model_r_99_f0000002.pth': 'alexnet',
+        './saved_models/cifar100_byol_local_QR_semantic_0.01/cifar100_byol_local_QR_semantic_0.01_global_model_r_99_f0000003.pth': 'resnet34',
     }
 
     models = []
@@ -257,6 +342,7 @@ if __name__ == "__main__":
         for epoch in range(args.num_epochs):
             metrics = defaultdict(list)
             for step, (h, y) in enumerate(train_loader):
+                # tSNE(h, y, 'poor.pdf')
                 h = h.to(device)
                 y = y.to(device)
 

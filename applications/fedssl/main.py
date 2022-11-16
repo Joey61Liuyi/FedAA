@@ -11,23 +11,23 @@ import wandb
 
 def run():
     dataset = 'cifar10'
-    user_num = 4
-    fed_ema = True
+    user_num = 10
+    fed_ema = False
     fed_u = False
     personalized = False
-    heterogeneous_network = {
-        'f0000000': 'resnet18',
-        'f0000001': 'vgg9',
-        'f0000002': 'alexnet',
-        'f0000003': 'resnet34',
-    }
+    # heterogeneous_network = {
+    #     'f0000000': 'resnet18',
+    #     'f0000001': 'vgg9',
+    #     'f0000002': 'alexnet',
+    #     'f0000003': 'resnet34',
+    # }
     MD = False
     # whether you use individual model without aggregation
     semantic_align = False
     fed_para = False
     semantic_method = 'QR'
     aggregation_method = 'semantic'
-    lamda = 0.001
+    lamda = 0.01
     track_loss = True
 
     if fed_ema:
@@ -63,12 +63,12 @@ def run():
     if fed_para:
         name3 = 'fed_para'
 
-    name = dataset + '_'+ name0+name1+name3+'_'+str(lamda)
+    name = str(user_num)+'_'+dataset + '_'+ name0+name1+name3+'_'+str(lamda)
     if MD:
         name += 'MD'
     # name += '_Non_IID'
     task_id = name
-    wandb.init(project='Hetero_EasyFL_{}'.format(dataset), name=name, entity='peilab')
+    wandb.init(project='AppendixC_EasyFL_{}'.format(dataset), name=name, entity='peilab')
     parser = argparse.ArgumentParser(description='FedSSL')
     parser.add_argument("--task_id", type=str, default=task_id)
     parser.add_argument("--dataset", type=str, default=dataset, help='options: cifar10, cifar100')
@@ -79,7 +79,7 @@ def run():
                         help='network architecture of encoder, options: resnet18, resnet50')
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
-    parser.add_argument('--batch_size', default=400, type=int)
+    parser.add_argument('--batch_size', default=500, type=int)
     parser.add_argument('--local_epoch', default=5, type=int)
     parser.add_argument('--rounds', default=100, type=int)
     parser.add_argument('--num_of_clients', default=user_num, type=int)
@@ -207,7 +207,7 @@ def run():
         'encoder_network': args.encoder_network,
         'predictor_network': args.predictor_network,
         'fed_para': fed_para,
-        'heterogeneous_network': heterogeneous_network,
+        # 'heterogeneous_network': heterogeneous_network,
         'track_loss': track_loss,
         'MD': MD,
         'test_dis': False,
