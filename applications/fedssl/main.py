@@ -12,8 +12,6 @@ import torch
 
 def run():
     dataset = 'cifar10'
-    user_num = 5
-    fed_ema = True
     user_num = 10
     fed_ema = False
     fed_u = False
@@ -27,11 +25,12 @@ def run():
     # }
     MD = False
     # whether you use individual model without aggregation
-    semantic_align = True
+    semantic_align = False
     fed_para = False
     semantic_method = 'QR'
-    resume_round = 39
-    resume_path = './saved_models/cifar10_fedema_weights_agg_QR_semantic_0.01/cifar10_fedema_weights_agg_QR_semantic_0.01_global_model_r_39.pth'
+    resume_round = 0
+    # resume_path = './saved_models/cifar10_fedema_weights_agg_QR_semantic_0.01/cifar10_fedema_weights_agg_QR_semantic_0.01_global_model_r_39.pth'
+    resume_path = None
     aggregation_method = 'semantic'
     lamda = 0.01
     track_loss = False
