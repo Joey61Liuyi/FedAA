@@ -12,7 +12,7 @@ import torch
 
 def run():
     dataset = 'cifar10'
-    user_num = 10
+    user_num = 100
     fed_ema = False
     fed_u = False
     personalized = False
@@ -84,9 +84,9 @@ def run():
                         help='network architecture of encoder, options: resnet18, resnet50')
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
-    parser.add_argument('--batch_size', default=500, type=int)
-    parser.add_argument('--local_epoch', default=5, type=int)
-    parser.add_argument('--rounds', default=101, type=int)
+    parser.add_argument('--batch_size', default=400, type=int)
+    parser.add_argument('--local_epoch', default=1, type=int)
+    parser.add_argument('--rounds', default=100, type=int)
     parser.add_argument('--num_of_clients', default=user_num, type=int)
     parser.add_argument('--clients_per_round', default=user_num, type=int)
     parser.add_argument('--class_per_client', default=10, type=int,

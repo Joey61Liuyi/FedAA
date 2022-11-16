@@ -96,6 +96,7 @@ class BaseServer(object):
                  val_data=None,
                  is_remote=False,
                  local_port=22999):
+        self.heat_map = None
         self.conf = conf
         self.test_data = test_data
         self.val_data = val_data
@@ -392,10 +393,11 @@ class BaseServer(object):
             if self.conf['semantic_align']:
                 b_dict[client.cid] = client.b
 
-            model = self.decompression(codec.unmarshal(uploaded_content.data))
-            uploaded_models[client.cid] = model
-            uploaded_weights[client.cid] = uploaded_content.data_size
-            uploaded_metrics.append(metric.ClientMetric.from_proto(uploaded_content.metric))
+            if not self.conf['personalized']:
+                model = self.decompression(codec.unmarshal(uploaded_content.data))
+                uploaded_models[client.cid] = model.cpu()
+                uploaded_weights[client.cid] = uploaded_content.data_size
+                uploaded_metrics.append(metric.ClientMetric.from_proto(uploaded_content.metric))
 
         self.heat_map[self._current_round] = distance_matrix
 

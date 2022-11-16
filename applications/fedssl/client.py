@@ -294,7 +294,8 @@ class FedSSLClient(BaseClient):
         self.b /= self.batch
 
         # store trained model locally
-        self._local_model = copy.deepcopy(self.model).cpu()
+        if conf['personalized']:
+            self._local_model = copy.deepcopy(self.model).cpu()
         self.previous_trained_round = conf.round_id
         if conf.update_predictor in [DAPU, DYNAMIC_DAPU, SELECTIVE_EMA] or conf.update_encoder in [DYNAMIC_EMA_ONLINE, SELECTIVE_EMA]:
             new_model = copy.deepcopy(nn.Sequential(*list(self.model.children())[:-1])).cpu()
