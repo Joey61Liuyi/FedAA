@@ -9,11 +9,24 @@ from model import get_model, BYOLNoEMA, BYOL, BYOLNoSG, BYOLNoEMA_NoSG
 from server import FedSSLServer
 import wandb
 import torch
+import os
+import re
+
+
+def get_gpu_memory():
+  free_gpu_info = os.popen('nvidia-smi -q -d Memory | grep -A4 GPU | grep Free').read()
+  tep = re.findall('.*: (.*) MiB', free_gpu_info)
+  gpu_dict = {}
+  for one in range(len(tep)):
+    gpu_dict[one] = int(tep[one])
+  gpu_id = sorted(gpu_dict.items(), key=lambda item: item[1])[-1][0]
+  os.environ.setdefault('CUDA_VISIBLE_DEVICES', str(gpu_id))
+
 
 def run():
-    dataset = 'cifar10'
+    dataset = 'cifar100'
     user_num = 100
-    fed_ema = False
+    fed_ema = True
     fed_u = False
     personalized = False
 
@@ -25,7 +38,7 @@ def run():
     # }
     MD = False
     # whether you use individual model without aggregation
-    semantic_align = False
+    semantic_align = True
     fed_para = False
     semantic_method = 'QR'
     resume_round = 0

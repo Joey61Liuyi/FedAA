@@ -75,11 +75,7 @@ def inference(loader, model, device):
         for step, (x, y) in enumerate(loader):
             x = x.to(device)
 
-
-
-
             # get encoding
-            print(x.shape)
 
 
             with torch.no_grad():
@@ -88,57 +84,57 @@ def inference(loader, model, device):
             h = h.squeeze()
             h = h.detach()
 
-            tep = torch.randn(x.shape).to(device)
-            tep1 = torch.randn(h.shape)
-
-            h_tep = model(tep)
-            h_tep = h_tep.squeeze()
-            h_tep = h_tep.detach()
-            h_tep = torch.matmul(h_tep.t(), h_tep)
-            h_tep = h_tep.cpu().numpy()
-
-            # sns.heatmap(h_tep, linewidth = 0.5)
-            h_tep = numpy.clip(h_tep, 0, 1000)
-            im = plt.imshow(h_tep)
-            # fig, ax = plt.subplots()
-            # heatmap = ax.pcolor(h_tep, cmap=plt.cm.Blues)
-            plt.colorbar(im)
-            plt.savefig('random_input.png')
-            plt.show()
-            plt.close()
-
-            h = torch.matmul(h.t(), h)
-            h = h.cpu().numpy()
-            h_tep = numpy.clip(h, 0, 500)
-            im = plt.imshow(h)
-            # sns.heatmap(h.cpu().numpy(), linewidths=0.5)
-            # fig, ax = plt.subplots()
-            # heatmap = ax.pcolor(h.cpu().numpy(), cmap=plt.cm.Blues)
-            plt.colorbar(im)
-            plt.savefig('feature.png')
-            plt.show()
-            plt.close()
-
-            tep1 = torch.matmul(tep1.t(), tep1)
-
-
-            # fig, ax = plt.subplots()
-            # heatmap = ax.pcolor(tep1.numpy(), cmap=plt.cm.Blues)
-
-
-            tep1 = tep1.cpu().numpy()
-            tep1 = numpy.clip(tep1, 0, 500)
-            im = plt.imshow(tep1)
-
-            plt.colorbar(im)
-            plt.savefig('random.png')
-            plt.show()
-            plt.close()
-
-
-            # tep = torch.randn
-            # plt.imshow(tep.cpu().numpy())
-            print('pause')
+            # tep = torch.randn(x.shape).to(device)
+            # tep1 = torch.randn(h.shape)
+            #
+            # h_tep = model(tep)
+            # h_tep = h_tep.squeeze()
+            # h_tep = h_tep.detach()
+            # h_tep = torch.matmul(h_tep.t(), h_tep)
+            # h_tep = h_tep.cpu().numpy()
+            #
+            # # sns.heatmap(h_tep, linewidth = 0.5)
+            # h_tep = numpy.clip(h_tep, 0, 1000)
+            # im = plt.imshow(h_tep)
+            # # fig, ax = plt.subplots()
+            # # heatmap = ax.pcolor(h_tep, cmap=plt.cm.Blues)
+            # plt.colorbar(im)
+            # plt.savefig('random_input.png')
+            # plt.show()
+            # plt.close()
+            #
+            # h = torch.matmul(h.t(), h)
+            # h = h.cpu().numpy()
+            # h_tep = numpy.clip(h, 0, 500)
+            # im = plt.imshow(h)
+            # # sns.heatmap(h.cpu().numpy(), linewidths=0.5)
+            # # fig, ax = plt.subplots()
+            # # heatmap = ax.pcolor(h.cpu().numpy(), cmap=plt.cm.Blues)
+            # plt.colorbar(im)
+            # plt.savefig('feature.png')
+            # plt.show()
+            # plt.close()
+            #
+            # tep1 = torch.matmul(tep1.t(), tep1)
+            #
+            #
+            # # fig, ax = plt.subplots()
+            # # heatmap = ax.pcolor(tep1.numpy(), cmap=plt.cm.Blues)
+            #
+            #
+            # tep1 = tep1.cpu().numpy()
+            # tep1 = numpy.clip(tep1, 0, 500)
+            # im = plt.imshow(tep1)
+            #
+            # plt.colorbar(im)
+            # plt.savefig('random.png')
+            # plt.show()
+            # plt.close()
+            #
+            #
+            # # tep = torch.randn
+            # # plt.imshow(tep.cpu().numpy())
+            # print('pause')
             feature_vector.extend(h.cpu().detach().numpy())
             labels_vector.extend(y.numpy())
 
@@ -198,8 +194,8 @@ def test_result(test_loader, logreg, device, model_path):
 if __name__ == "__main__":
     set_random_seed(0)
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", default="cifar100", type=str)
-    parser.add_argument("--model_path", default='./lab/saved_models/cifar100_fedema_weights_agg_QR_semantic_0.01/cifar100_fedema_weights_agg_QR_semantic_0.01_global_model_r_99.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
+    parser.add_argument("--dataset", default="cifar10", type=str)
+    parser.add_argument("--model_path", default='./saved_models/100_cifar10_fedu_weights_agg__0.01/100_cifar10_fedu_weights_agg__0.01_global_model_r_89.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
     parser.add_argument('--model', default='byol', type=str, help='name of the network')
     parser.add_argument("--image_size", default=32, type=int, help="Image size")
     parser.add_argument("--learning_rate", default=3e-3, type=float, help="Initial learning rate.")
