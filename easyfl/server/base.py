@@ -381,7 +381,7 @@ class BaseServer(object):
             if hasattr(client, 'distance_dict'):
                 distance_matrix.append(list(client.distance_dict.values()))
 
-            if self.conf['personalized'] and self.conf.client.round_id == 0:
+            if self.conf['personalized'] and self.conf.client.round_id == 1:
                 encoder_network = self.conf['heterogeneous_network'][client.cid]
                 model = get_model(self.conf.model, encoder_network, self.conf.predictor_network, self.conf.fed_para)
             else:

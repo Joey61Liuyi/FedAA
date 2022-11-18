@@ -10,9 +10,10 @@ from easyfl.datasets.data import CIFAR100
 from eval_dataset import get_data_loaders
 from model import get_encoder_network
 import random
-from sklearn.manifold import TSNE
-import matplotlib.pyplot as plt
-import seaborn as sns
+import os
+# from sklearn.manifold import TSNE
+# import matplotlib.pyplot as plt
+# import seaborn as sns
 
 def set_random_seed(seed):
     random.seed(seed)
@@ -27,6 +28,7 @@ def tSNE(h, label, name):
     data = np.array(h)
     target = np.array(label)
     tsne = TSNE(n_components=2, n_iter=500)
+
     data_tsne = tsne.fit_transform(data)
     x, y = data_tsne[:, 0], data_tsne[:, 1]
 
@@ -42,7 +44,7 @@ def tSNE(h, label, name):
     plt.scatter(x, y, c=color_target, s=10)
     plt.xticks(fontsize=14, rotation=0)
     plt.yticks(fontsize=14, rotation=0)
-    fig.tight_layout()
+    20
     plt.savefig(name, dpi=1000)
     plt.show()
 
@@ -195,7 +197,7 @@ if __name__ == "__main__":
     set_random_seed(0)
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="cifar10", type=str)
-    parser.add_argument("--model_path", default='./saved_models/100_cifar10_fedu_weights_agg__0.01/100_cifar10_fedu_weights_agg__0.01_global_model_r_89.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
+    parser.add_argument("--model_path", default='./saved_models/100_cifar10_fedu_weights_agg__0.01/100_cifar10_fedu_weights_agg__0.01_global_model_r_99.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
     parser.add_argument('--model', default='byol', type=str, help='name of the network')
     parser.add_argument("--image_size", default=32, type=int, help="Image size")
     parser.add_argument("--learning_rate", default=3e-3, type=float, help="Initial learning rate.")
@@ -207,7 +209,7 @@ if __name__ == "__main__":
     parser.add_argument("--fc", default="identity", help="options: identity, remove")
     args = parser.parse_args()
     print(args)
-
+    os.environ.setdefault('CUDA_VISIBLE_DEVICES', '4')
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 
     # get data loaders
@@ -215,12 +217,23 @@ if __name__ == "__main__":
 
     model_name = ['f0000000.pth','f0000001.pth', 'f0000002.pth', 'f0000003.pth', 'f0000004.pth']
 
-    model_dict ={
-        './saved_models/cifar100_byol_local_QR_semantic_0.01/cifar100_byol_local_QR_semantic_0.01_global_model_r_99_f0000000.pth': 'resnet18',
-        './saved_models/cifar100_byol_local_QR_semantic_0.01/cifar100_byol_local_QR_semantic_0.01_global_model_r_99_f0000001.pth': 'vgg9',
-        './saved_models/cifar100_byol_local_QR_semantic_0.01/cifar100_byol_local_QR_semantic_0.01_global_model_r_99_f0000002.pth': 'alexnet',
-        './saved_models/cifar100_byol_local_QR_semantic_0.01/cifar100_byol_local_QR_semantic_0.01_global_model_r_99_f0000003.pth': 'resnet34',
-    }
+    heterogeneous_network = {'f0000000': 'mobilenet',
+                             'f0000001': 'vgg9',
+                              'f0000002': 'vgg9',
+                             'f0000003': 'resnet18',
+                             'f0000004': 'mobilenet',
+                             'f0000005': 'alexnet',
+                             'f0000006': 'alexnet',
+                             'f0000007': 'resnet34'
+                             }
+
+    #
+    # model_dict ={
+    #     './saved_models/cifar100_byol_local_QR_semantic_0.01/cifar100_byol_local_QR_semantic_0.01_global_model_r_99_f0000000.pth': 'resnet18',
+    #     './saved_models/cifar100_byol_local_QR_semantic_0.01/cifar100_byol_local_QR_semantic_0.01_global_model_r_99_f0000001.pth': 'vgg9',
+    #     './saved_models/cifar100_byol_local_QR_semantic_0.01/cifar100_byol_local_QR_semantic_0.01_global_model_r_99_f0000002.pth': 'alexnet',
+    #     './saved_models/cifar100_byol_local_QR_semantic_0.01/cifar100_byol_local_QR_semantic_0.01_global_model_r_99_f0000003.pth': 'resnet34',
+    # }
 
     models = []
     if args.personalized:
@@ -240,11 +253,15 @@ if __name__ == "__main__":
         #     models.append(resnet)
         # resnet = models
         acc_list = []
-        for model in model_dict:
+        for model in heterogeneous_network:
+
+            path = './saved_models/5_cifar10_byol_local__0.01/5_cifar10_byol_local__0.01_global_model_r_89_{}.pth'.format(model)
+
+
             train_loader, test_loader = get_data_loaders(args.dataset, args.image_size, args.batch_size,
                                                          args.num_workers)
-            online_encoder = get_encoder_network(args.model, model_dict[model])
-            online_encoder.load_state_dict(torch.load(model, map_location=device))
+            online_encoder = get_encoder_network(args.model, heterogeneous_network[model])
+            online_encoder.load_state_dict(torch.load(path, map_location=device))
             online_encoder = online_encoder.to(device)
             num_features = online_encoder.feature_dim
             online_encoder.fc = nn.Identity()

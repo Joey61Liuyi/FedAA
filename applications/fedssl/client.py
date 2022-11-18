@@ -202,6 +202,7 @@ class FedSSLClient(BaseClient):
             self.model.online_predictor = copy.deepcopy(predictor)
 
     def train(self, conf, device=CPU):
+        print(self.model.online_encoder._get_name())
         self.w = 0
         self.b = 0
         self.batch = 0
@@ -266,10 +267,10 @@ class FedSSLClient(BaseClient):
                                     feature_restore = recreate_feature(features, self.b_dict[one])
                                     distance = kl_loss(features, feature_restore.detach())
                                     distance_dict[one].append(distance.item())
-                                    if one != self.cid and b.trace() < self.b_dict[one].trace():
+                                    if one != self.cid:
                                         loss_ours += distance
                                 else:
-                                    if one != self.cid and b.trace() < self.b_dict[one].trace():
+                                    if one != self.cid:
                                         feature_restore = recreate_feature(features, self.b_dict[one])
                                         loss_ours += kl_loss(features, feature_restore.detach())
 

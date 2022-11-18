@@ -14,31 +14,40 @@ import re
 
 
 def get_gpu_memory():
-  free_gpu_info = os.popen('nvidia-smi -q -d Memory | grep -A4 GPU | grep Free').read()
+  free_gpu_info = os.popen('nvidia-smi -q -d Memory | grep -A4 GPU | grep Used').read()
   tep = re.findall('.*: (.*) MiB', free_gpu_info)
   gpu_dict = {}
   for one in range(len(tep)):
     gpu_dict[one] = int(tep[one])
-  gpu_id = sorted(gpu_dict.items(), key=lambda item: item[1])[-1][0]
+  gpu_id = sorted(gpu_dict.items(), key=lambda item: item[1])[-1][-1]
   os.environ.setdefault('CUDA_VISIBLE_DEVICES', str(gpu_id))
 
 
 def run():
-    dataset = 'cifar100'
-    user_num = 100
-    fed_ema = True
+    # os.environ.setdefault('CUDA_VISIBLE_DEVICES', '4')
+    dataset = 'cifar10'
+    user_num = 5
+    fed_ema = False
     fed_u = False
     personalized = False
+    frequency = 1
+    rounds = int(100*5/frequency)
 
-    # heterogeneous_network = {
-    #     'f0000000': 'resnet18',
-    #     'f0000001': 'vgg9',
-    #     'f0000002': 'alexnet',
-    #     'f0000003': 'resnet34',
-    # }
+
+    heterogeneous_network = {
+        'f0000000': 'resnet34',
+        'f0000001': 'vgg9',
+        'f0000002': 'vgg9',
+        'f0000003': 'resnet18',
+        'f0000004': 'resnet18',
+        'f0000005': 'alexnet',
+        'f0000006': 'alexnet',
+        'f0000007': 'resnet34',
+    }
+
     MD = False
     # whether you use individual model without aggregation
-    semantic_align = True
+    semantic_align =True
     fed_para = False
     semantic_method = 'QR'
     resume_round = 0
@@ -81,12 +90,12 @@ def run():
     if fed_para:
         name3 = 'fed_para'
 
-    name = str(user_num)+'_'+dataset + '_'+ name0+name1+name3+'_'+str(lamda)
+    name = str(frequency)+'_'+dataset + '_'+ name0+name1+name3+'_'+str(lamda)
     if MD:
         name += 'MD'
     # name += '_Non_IID'
     task_id = name
-    wandb.init(project='AppendixC_EasyFL_{}'.format(dataset), name=name, entity='peilab')
+    wandb.init(project='AppendixD_Hetero_EasyFL_{}'.format(dataset), name=name, entity='peilab')
     parser = argparse.ArgumentParser(description='FedSSL')
     parser.add_argument("--task_id", type=str, default=task_id)
     parser.add_argument("--dataset", type=str, default=dataset, help='options: cifar10, cifar100')
@@ -97,9 +106,9 @@ def run():
                         help='network architecture of encoder, options: resnet18, resnet50')
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
-    parser.add_argument('--batch_size', default=300, type=int)
-    parser.add_argument('--local_epoch', default=5, type=int)
-    parser.add_argument('--rounds', default=100, type=int)
+    parser.add_argument('--batch_size', default=400, type=int)
+    parser.add_argument('--local_epoch', default=frequency, type=int)
+    parser.add_argument('--rounds', default=rounds, type=int)
     parser.add_argument('--num_of_clients', default=user_num, type=int)
     parser.add_argument('--clients_per_round', default=user_num, type=int)
     parser.add_argument('--class_per_client', default=10, type=int,
@@ -121,8 +130,8 @@ def run():
     parser.add_argument('--predictor_weight', type=float, default=0,
                         help='for ema predictor update, apply on local predictor')
 
-    parser.add_argument('--test_every', default=100, type=int, help='test every x rounds')
-    parser.add_argument('--save_model_every', default=10, type=int, help='save model every x rounds')
+    parser.add_argument('--test_every', default=10000, type=int, help='test every x rounds')
+    parser.add_argument('--save_model_every', default=100, type=int, help='save model every x rounds')
     parser.add_argument('--save_predictor', action='store_true', help='whether save predictor')
 
     parser.add_argument('--semi_supervised', default=0, help='whether to train with semi-supervised data')
@@ -225,7 +234,7 @@ def run():
         'encoder_network': args.encoder_network,
         'predictor_network': args.predictor_network,
         'fed_para': fed_para,
-        # 'heterogeneous_network': heterogeneous_network,
+        'heterogeneous_network': heterogeneous_network,
         'track_loss': track_loss,
         'MD': MD,
         'test_dis': False,
