@@ -226,7 +226,7 @@ def construct_datasets(root,
 
     # CIFAR datasets are simulated.
     public_data = {'x':[], 'y':[]}
-    partio = 0.0808
+    partio = 0.5
 
     for client in train_data:
         num = len(train_data[client]['y'])

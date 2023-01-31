@@ -30,17 +30,16 @@ def run():
     personalized = True
     heterogeneous_network = {
         'f0000000': 'resnet18',
-        'f0000001': 'resnet34',
-        'f0000002': 'vgg9',
-        'f0000003': 'alexnet',
-        # 'f0000004': 'vgg9',
+        'f0000001': 'vgg9',
+        'f0000002': 'alexnet',
+        'f0000003': 'resnet34',
     }
     lamda = 1
     MD = False
     # whether you use individual model without aggregation
-    semantic_align = True
+    semantic_align = False
     fed_para = False
-    track_loss = True
+    track_loss = False
     semantic_method = 'QR'
     aggregation_method = 'semantic'
 
@@ -74,12 +73,12 @@ def run():
         name += 'MD'
     # name += '_Non_IID'
     task_id = name
-    wandb.init(project='11.9.Swift_EasyFL_{}'.format(dataset), name=name, entity='peilab')
+    wandb.init(project='1.31_EasyFL_{}'.format(dataset), name=name, entity='peilab')
     parser = argparse.ArgumentParser(description='FedSSL')
     parser.add_argument("--task_id", type=str, default=task_id)
     parser.add_argument("--dataset", type=str, default=dataset, help='options: cifar10, cifar100')
     parser.add_argument("--data_partition", type=str, default='dir', help='options: class, iid, dir')
-    parser.add_argument("--dir_alpha", type=float, default=100000, help='alpha for dirichlet sampling')
+    parser.add_argument("--dir_alpha", type=float, default=1, help='alpha for dirichlet sampling')
     parser.add_argument('--model', default=model, type=str, help='options: byol, simsiam, simclr, moco, moco_v2')
     parser.add_argument('--encoder_network', default='resnet18', type=str,
                         help='network architecture of encoder, options: resnet18, resnet50')
