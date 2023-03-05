@@ -24,10 +24,10 @@ def set_random_seed(seed):
 
 def run():
     set_random_seed(0)
-    dataset = 'cifar10'
-    user_num = 4
+    dataset = 'mini_imagenet'
+    user_num = 5
     fed_ema = False
-    personalized = True
+    personalized = False
     heterogeneous_network = {
         'f0000000': 'resnet18',
         'f0000001': 'resnet34',
@@ -38,9 +38,9 @@ def run():
     lamda = 1
     MD = False
     # whether you use individual model without aggregation
-    semantic_align = True
+    semantic_align = False
     fed_para = False
-    track_loss = True
+    track_loss = False
     semantic_method = 'QR'
     aggregation_method = 'semantic'
 
@@ -74,7 +74,7 @@ def run():
         name += 'MD'
     # name += '_Non_IID'
     task_id = name
-    wandb.init(project='11.9.Swift_EasyFL_{}'.format(dataset), name=name, entity='peilab')
+    # wandb.init(project='11.9.Swift_EasyFL_{}'.format(dataset), name=name, entity='peilab')
     parser = argparse.ArgumentParser(description='FedSSL')
     parser.add_argument("--task_id", type=str, default=task_id)
     parser.add_argument("--dataset", type=str, default=dataset, help='options: cifar10, cifar100')
