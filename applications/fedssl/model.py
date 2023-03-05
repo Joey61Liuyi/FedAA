@@ -36,7 +36,7 @@ def get_encoder(arch=RESNET18):
     return models.__dict__[arch]
 
 
-def get_model(model, encoder_network, predictor_network=TwoLayer, fed_para=False):
+def get_model(model, encoder_network, predictor_network=TwoLayer, fed_para=False, dataset = 'cifar10'):
 
     if fed_para:
         from easyfl.models.fed_para import ResNet18
@@ -94,6 +94,9 @@ def get_model(model, encoder_network, predictor_network=TwoLayer, fed_para=False
             net = AlexNet()
         elif encoder_network == 'mobilenet':
             net = MobileNet()
+
+        if dataset == 'mini_imagenet':
+            net.feature_dim = 2048
         return BYOLModel(net=net, stop_gradient=stop_gradient, has_predictor=has_predictor,
                          predictor_network=predictor_network)
     elif model == SimCLR:
@@ -269,8 +272,8 @@ class BYOLModel(BaseModel):
             feature_dim = list(net.children())[-1].in_features
         else:
             feature_dim = net.feature_dim
-        self.online_encoder.fc = MLP(feature_dim, projection_size, projection_hidden_size)  # projector
 
+        self.online_encoder.fc = MLP(feature_dim, projection_size, projection_hidden_size)  # projector
         self.online_predictor = MLP(projection_size, projection_size, projection_hidden_size, predictor_network)
         self.target_encoder = None
         self.target_ema_updater = EMA(moving_average_decay)

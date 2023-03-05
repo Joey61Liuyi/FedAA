@@ -112,10 +112,10 @@ def test_result(test_loader, logreg, device, model_path):
 if __name__ == "__main__":
     set_random_seed(0)
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", default="cifar100", type=str)
-    parser.add_argument("--model_path", default='./lab/saved_models/cifar100_fedema_weights_agg_/cifar100_fedema_weights_agg__global_model_r_49.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
+    parser.add_argument("--dataset", default="mini_imagenet", type=str)
+    parser.add_argument("--model_path", default='./saved_models/byol_weights_agg__1/byol_weights_agg__1_global_model_r_99.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
     parser.add_argument('--model', default='byol', type=str, help='name of the network')
-    parser.add_argument("--image_size", default=32, type=int, help="Image size")
+    parser.add_argument("--image_size", default=64, type=int, help="Image size")
     parser.add_argument("--learning_rate", default=3e-3, type=float, help="Initial learning rate.")
     parser.add_argument("--batch_size", default=512, type=int, help="Batch size for training.")
     parser.add_argument("--num_epochs", default=200, type=int, help="Number of epochs to train for.")
@@ -231,6 +231,8 @@ if __name__ == "__main__":
 
         n_classes = 10
         if args.dataset == CIFAR100:
+            n_classes = 100
+        elif args.dataset == 'mini_imagenet':
             n_classes = 100
 
         # fine-tune model

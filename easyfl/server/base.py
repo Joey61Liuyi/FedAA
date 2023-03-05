@@ -225,11 +225,11 @@ class BaseServer(object):
         test_begin_time = time.time()
 
         test_results = {metric.TEST_ACCURACY: 0, metric.TEST_LOSS: 0, metric.TEST_TIME: 0}
-        if self.conf.test_mode == TEST_IN_SERVER:
-            if self.is_primary_server():
-                test_results = self.test_in_server(self.conf.device)
-        else:
-            test_results = self.test_in_client()
+        # if self.conf.test_mode == TEST_IN_SERVER:
+        #     if self.is_primary_server():
+        #         test_results = self.test_in_server(self.conf.device)
+        # else:
+        #     test_results = self.test_in_client()
 
         test_results[metric.TEST_TIME] = time.time() - test_begin_time
         self.track_test_results(test_results)

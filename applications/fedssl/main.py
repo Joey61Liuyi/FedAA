@@ -74,7 +74,7 @@ def run():
         name += 'MD'
     # name += '_Non_IID'
     task_id = name
-    wandb.init(project='11.9.Swift_EasyFL_{}'.format(dataset), name=name, entity='peilab')
+    # wandb.init(project='3.5.Swift_EasyFL_{}'.format(dataset), name=name, entity='peilab')
     parser = argparse.ArgumentParser(description='FedSSL')
     parser.add_argument("--task_id", type=str, default=task_id)
     parser.add_argument("--dataset", type=str, default=dataset, help='options: cifar10, cifar100')
@@ -85,9 +85,9 @@ def run():
                         help='network architecture of encoder, options: resnet18, resnet50')
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
-    parser.add_argument('--batch_size', default=500, type=int)
+    parser.add_argument('--batch_size', default=300, type=int)
     parser.add_argument('--local_epoch', default=1, type=int)
-    parser.add_argument('--rounds', default=200, type=int)
+    parser.add_argument('--rounds', default=100, type=int)
     parser.add_argument('--num_of_clients', default=user_num, type=int)
     parser.add_argument('--clients_per_round', default=user_num, type=int)
     parser.add_argument('--class_per_client', default=10, type=int,
@@ -109,8 +109,8 @@ def run():
     parser.add_argument('--predictor_weight', type=float, default=0,
                         help='for ema predictor update, apply on local predictor')
 
-    parser.add_argument('--test_every', default=10, type=int, help='test every x rounds')
-    parser.add_argument('--save_model_every', default=100, type=int, help='save model every x rounds')
+    parser.add_argument('--test_every', default=100, type=int, help='test every x rounds')
+    parser.add_argument('--save_model_every', default=20, type=int, help='save model every x rounds')
     parser.add_argument('--save_predictor', action='store_true', help='whether save predictor')
 
     parser.add_argument('--semi_supervised', default=0, help='whether to train with semi-supervised data')
@@ -139,8 +139,7 @@ def run():
     elif args.model == BYOLNoEMA_NoSG:
         args.model = BYOLNoSG
         momentum_update = False
-
-    image_size = 32
+    image_size = 64
 
     config = {
         "task_id": task_id,
@@ -238,7 +237,7 @@ def run():
                                                                args.label_ratio)
         easyfl.register_dataset(train_data, test_data)
 
-    model = get_model(args.model, args.encoder_network, args.predictor_network, fed_para)
+    model = get_model(args.model, args.encoder_network, args.predictor_network, fed_para, args.dataset)
     model.to('cuda')
     easyfl.register_model(model)
     easyfl.register_client(FedSSLClient)

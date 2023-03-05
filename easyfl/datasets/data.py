@@ -274,8 +274,9 @@ def data_partition(training_data, testing_data, alpha, user_num):
 
 
 class MiniImageNetDataset(Dataset):
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, transform = None):
         self.data_dir = data_dir
+        self.transform = transform
         self.image_paths = []
         self.labels = []
         self.label_dict = {}
@@ -303,13 +304,12 @@ class MiniImageNetDataset(Dataset):
         image_path = self.image_paths[index]
         image = Image.open(image_path).convert('RGB')
         image = image.resize(self.image_size)
-        image = np.array(image)
 
         # Get the label
         label = self.labels[index]
 
         # Convert the image and label to torch tensors and return them
-        image = torch.from_numpy(image).permute(2, 0, 1).float()
+        image = self.transform(image)
         label = torch.tensor(label).long()
 
         return image, label
@@ -421,14 +421,11 @@ def construct_datasets(root,
             save_dict(test_data, os.path.join(data_dir, 'test'))
 
         transform_train = torchvision.transforms.Compose([
-            RandomCrop((32,32), padding=4),
             RandomHorizontalFlip(p=0.5),
             ToTensor(),
             Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         ])
         transform_test = torchvision.transforms.Compose([
-            RandomCrop((32,32), padding=4),
-            RandomHorizontalFlip(p=0.5),
             ToTensor(),
             Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         ])
