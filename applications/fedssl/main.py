@@ -74,7 +74,7 @@ def run():
         name += 'MD'
     # name += '_Non_IID'
     task_id = name
-    # wandb.init(project='11.9.Swift_EasyFL_{}'.format(dataset), name=name, entity='peilab')
+    wandb.init(project='11.9.Swift_EasyFL_{}'.format(dataset), name=name, entity='peilab')
     parser = argparse.ArgumentParser(description='FedSSL')
     parser.add_argument("--task_id", type=str, default=task_id)
     parser.add_argument("--dataset", type=str, default=dataset, help='options: cifar10, cifar100')
