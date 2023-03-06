@@ -7,7 +7,7 @@ import torch.nn as nn
 
 from easyfl.datasets.data import CIFAR100
 from eval_dataset import get_data_loaders
-from model import get_encoder_network
+from model import get_model
 import random
 
 
@@ -161,7 +161,8 @@ if __name__ == "__main__":
         for model in model_dict:
             train_loader, test_loader = get_data_loaders(args.dataset, args.image_size, args.batch_size,
                                                          args.num_workers)
-            online_encoder = get_encoder_network(args.model, model_dict[model])
+            online_encoder = get_model(args.model, args.encoder_network, '2_layer', False, args.dataset)
+            resnet = resnet.online_encoder
             online_encoder.load_state_dict(torch.load(model, map_location=device))
             online_encoder = online_encoder.to(device)
             num_features = online_encoder.feature_dim
@@ -220,7 +221,8 @@ if __name__ == "__main__":
 
     else:
         train_loader, test_loader = get_data_loaders(args.dataset, args.image_size, args.batch_size, args.num_workers)
-        resnet = get_encoder_network(args.model, args.encoder_network)
+        resnet = get_model(args.model, args.encoder_network, '2_layer', False, args.dataset)
+        resnet = resnet.online_encoder
         resnet.load_state_dict(torch.load(args.model_path, map_location=device))
         resnet = resnet.to(device)
         num_features = list(resnet.children())[-1].in_features
