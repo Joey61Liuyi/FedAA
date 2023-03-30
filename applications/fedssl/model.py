@@ -96,11 +96,13 @@ def get_model(model, encoder_network, predictor_network=TwoLayer, fed_para=False
             net = MobileNet()
 
         if dataset == 'mini_imagenet':
-            net.feature_dim = 2048
+            net.feature_dim = 512
         return BYOLModel(net=net, stop_gradient=stop_gradient, has_predictor=has_predictor,
                          predictor_network=predictor_network)
     elif model == SimCLR:
         net = ResNet18()
+        if dataset == 'mini_imagenet':
+            net.feature_dim = 512
         if encoder_network == RESNET50:
             net = ResNet50()
         return SimCLRModel(net=net)
@@ -108,7 +110,7 @@ def get_model(model, encoder_network, predictor_network=TwoLayer, fed_para=False
         raise NotImplementedError
 
 
-def get_encoder_network(model, encoder_network, num_classes=10, projection_size=256, projection_hidden_size=256):
+def get_encoder_network(model, encoder_network, num_classes=10, projection_size=512, projection_hidden_size=512):
     if model in [MoCo, MoCoV2]:
         num_classes = 128
 
@@ -141,8 +143,8 @@ class SymmetricModel(BaseModel):
             self,
             net=ResNet18(),
             image_size=32,
-            projection_size=2048,
-            projection_hidden_size=4096,
+            projection_size=512,
+            projection_hidden_size=512,
             stop_gradient=True
     ):
         super().__init__()
@@ -173,8 +175,8 @@ class SimSiamModel(BaseModel):
             self,
             net=ResNet18(),
             image_size=32,
-            projection_size=2048,
-            projection_hidden_size=4096,
+            projection_size=512,
+            projection_hidden_size=512,
             stop_gradient=True,
     ):
         super().__init__()
@@ -258,8 +260,8 @@ class BYOLModel(BaseModel):
             self,
             net=ResNet18(),
             image_size=32,
-            projection_size=256,
-            projection_hidden_size=256,
+            projection_size=512,
+            projection_hidden_size=512,
             moving_average_decay=0.99,
             stop_gradient=True,
             has_predictor=True,
@@ -503,7 +505,7 @@ class MoCoModel(BaseModel):
 
 
 class SimCLRModel(BaseModel):
-    def __init__(self, net=ResNet18(), image_size=32, projection_size=256, projection_hidden_size=256):
+    def __init__(self, net=ResNet18(), image_size=32, projection_size=512, projection_hidden_size=512):
         super().__init__()
 
         self.online_encoder = net

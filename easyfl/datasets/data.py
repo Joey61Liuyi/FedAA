@@ -323,7 +323,7 @@ def from_index_to_x_y(index, dataset):
     for i in index:
         path = dataset.image_paths[i]
         img = Image.open(path).convert('RGB')
-        img = img.resize((64,64))
+        img = img.resize((224,224))
         img_array = np.array(img)
         img_array = np.expand_dims(img_array, axis=0)
         result['x'].append(img_array)
@@ -392,6 +392,12 @@ def construct_datasets(root,
         if os.path.exists(data_dir):
             train_data = load_dict(os.path.join(data_dir, 'train'))
             test_data = load_dict(os.path.join(data_dir, 'test'))
+
+            for client in train_data:
+                for i in train_data[client]:
+                    train_data[client][i] = np.load(train_data[client][i])['data']
+            for i in test_data:
+                test_data[i] = np.load(test_data[i])['data']
 
         else:
 

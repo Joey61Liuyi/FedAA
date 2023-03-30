@@ -4,12 +4,11 @@ from collections import defaultdict
 import numpy as np
 import torch
 import torch.nn as nn
-
 from easyfl.datasets.data import CIFAR100
 from eval_dataset import get_data_loaders
 from model import get_model
 import random
-
+import matplotlib.pyplot as plt
 
 def set_random_seed(seed):
     random.seed(seed)
@@ -44,15 +43,46 @@ def inference(loader, model, device):
     else:
         model.eval()
         for step, (x, y) in enumerate(loader):
+
+            # x = torch.randn(x.shape)
             x = x.to(device)
+
+
+
+            # x = torch.randn((512,2048))
+            # h = x.to(device)
+            # similarity = torch.matmul(h, h.t())
+            # similarity /= torch.norm(h, dim=1)[:, None]
+            # similarity /= torch.norm(h, dim=1)[None, :]
+            # fig, ax = plt.subplots()
+            # heatmap = ax.imshow(similarity.cpu().numpy(), cmap='Blues')
+            # ax.set_xticks([])
+            # ax.set_yticks([])
+            # ax.set_title('Cosine Similarity')
+            # cbar = fig.colorbar(heatmap, ax=ax)
+            # plt.savefig('random.png')
+            # plt.show()
 
             # get encoding
             with torch.no_grad():
                 h = model(x)
 
-            h = h.squeeze()
             h = h.detach()
 
+            similarity = torch.matmul(h, h.t())
+            similarity /= torch.norm(h, dim=1)[:, None]
+            similarity /= torch.norm(h, dim=1)[None, :]
+
+            # Plot heatmap
+            fig, ax = plt.subplots()
+            heatmap = ax.imshow(similarity.cpu().numpy(), cmap='Blues')
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_title('Cosine Similarity')
+            cbar = fig.colorbar(heatmap, ax=ax)
+            plt.savefig('random_input.png')
+            plt.show()
+            h = h.squeeze()
             feature_vector.extend(h.cpu().detach().numpy())
             labels_vector.extend(y.numpy())
 
@@ -108,14 +138,16 @@ def test_result(test_loader, logreg, device, model_path):
         print(f"{k}: {np.array(v).mean():.4f}")
     return np.array(metrics["Accuracy/test"]).mean()
 
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 if __name__ == "__main__":
     set_random_seed(0)
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="mini_imagenet", type=str)
-    parser.add_argument("--model_path", default='./saved_models/byol_weights_agg__1/byol_weights_agg__1_global_model_r_99.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
+    parser.add_argument("--model_path", default='./saved_models/fedema_weights_agg__1/fedema_weights_agg__1_global_model_r_199.pth', type=str, help="Path to pre-trained model (e.g. model-10.pt)")
     parser.add_argument('--model', default='byol', type=str, help='name of the network')
-    parser.add_argument("--image_size", default=64, type=int, help="Image size")
+    parser.add_argument("--image_size", default=224, type=int, help="Image size")
     parser.add_argument("--learning_rate", default=3e-3, type=float, help="Initial learning rate.")
     parser.add_argument("--batch_size", default=512, type=int, help="Batch size for training.")
     parser.add_argument("--num_epochs", default=200, type=int, help="Number of epochs to train for.")

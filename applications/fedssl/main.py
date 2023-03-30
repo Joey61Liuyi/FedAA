@@ -25,9 +25,9 @@ def set_random_seed(seed):
 def run():
     set_random_seed(0)
     dataset = 'mini_imagenet'
-    user_num = 5
+    user_num = 1
     fed_ema = False
-    fed_u = True
+    fed_u = False
     personalized = False
     heterogeneous_network = {
         'f0000000': 'resnet18',
@@ -61,10 +61,9 @@ def run():
         update_predictor = 'dapu'
 
     else:
-        model = 'byol'
+        model = 'simclr'
         update_encoder = 'online'
         update_predictor = 'global'
-
         name0 = model
 
     if personalized:
@@ -95,15 +94,15 @@ def run():
                         help='network architecture of encoder, options: resnet18, resnet50')
     parser.add_argument('--predictor_network', default='2_layer', type=str,
                         help='network of predictor, options: 1_layer, 2_layer')
-    parser.add_argument('--batch_size', default=300, type=int)
+    parser.add_argument('--batch_size', default=128, type=int)
     parser.add_argument('--local_epoch', default=1, type=int)
-    parser.add_argument('--rounds', default=100, type=int)
+    parser.add_argument('--rounds', default=200, type=int)
     parser.add_argument('--num_of_clients', default=user_num, type=int)
     parser.add_argument('--clients_per_round', default=user_num, type=int)
     parser.add_argument('--class_per_client', default=10, type=int,
                         help='for non-IID setting, number of classes each client, based on CIFAR10')
     parser.add_argument('--optimizer_type', default='SGD', type=str, help='optimizer type')
-    parser.add_argument('--lr', default=0.032, type=float)
+    parser.add_argument('--lr', default=0.02, type=float)
     parser.add_argument('--lr_type', default='cosine', type=str, help='cosine decay learning rate')
     parser.add_argument('--random_selection', action='store_true', help='whether randomly select clients')
     parser.add_argument('--aggregate_encoder', default='online', type=str, help='options: online, target')
@@ -149,7 +148,7 @@ def run():
     elif args.model == BYOLNoEMA_NoSG:
         args.model = BYOLNoSG
         momentum_update = False
-    image_size = 64
+    image_size = 224
 
     config = {
         "task_id": task_id,
